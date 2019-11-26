@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[195]:
+# In[229]:
 
 
 
@@ -85,7 +85,7 @@ def auto_segment(
     
     # We perform K-Means clustering analysis :
     _intensities = img.flatten().reshape(-1, 1)
-    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=verbose).fit(_intensities)
+    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=False).fit(_intensities)
     _centers = pd.core.frame.DataFrame({
         "means": chain.from_iterable(_kmeans.cluster_centers_)
     })
@@ -108,12 +108,13 @@ def auto_segment(
     _fill_vals = np.linspace(_min, _max, groups, dtype=img.dtype)
     print(_fill_vals)
     
-    dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
-    for fill, k in zip(_fill_vals[1:], reversed(_centers['k'].dropna().tolist())):
-        print(fill)
-        _mask = dst < k
+    # dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
+    ks = [0] + _centers['k'].dropna().tolist()
+    for j in range(len(ks) - 1):
+        print(_fill_vals[j])
+        _mask = np.nonzero( (dst > ks[j]) & (dst < ks[j+1]) )
         print(_mask)
-        dst[ _mask ] = fill
+        dst[ _mask ] = _fill_vals[j]
     
     if verbose:
         fig = plt.figure(figsize = figsize)
@@ -134,6 +135,21 @@ def auto_segment(
     return dst
         
     
+
+
+# In[235]:
+
+
+_tmp_img = mangueras[llaves[0]]
+mask = auto_segment(_tmp_img, verbose=True, groups=10)
+#sns.distplot(mask.flatten())
+#utils.side_by_side(_tmp_img, mask)
+
+
+# In[233]:
+
+
+sns.distplot(mask.flatten())
 
 
 # In[5]:
@@ -399,9 +415,7 @@ print(*y)
 # In[196]:
 
 
-_tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, verbose=True, groups=2)
-utils.side_by_side(_tmp_img, mask)
+
 
 
 # In[198]:
@@ -438,6 +452,12 @@ x[-]
 
 
 x[::-1] 
+
+
+# In[216]:
+
+
+pd.core.frame.DataFrame({"h": [np.nan, 1, np.nan, 3]}).fillna(0)
 
 
 # In[ ]:

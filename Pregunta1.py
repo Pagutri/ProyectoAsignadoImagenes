@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[34]:
+# In[103]:
+
+
+# Type annotations :
+from typing import Tuple, List, Optional, NoReturn, Callable, Any
 
 
 # Standard and OS :
@@ -61,6 +65,64 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
+# In[128]:
+
+
+
+def auto_segment(
+    img: np.ndarray, 
+    groups: int = 2, 
+    verbose: bool = False, 
+    save_file: Optional[str] = None,
+    figsize: Optional[Tuple[int]] = (15, 10)
+) -> np.ndarray:
+    """
+        
+    """
+    
+    #Create the destination image from the image passed to the function.
+    dst: np.ndarray = copy.deepcopy(img)
+    
+    # We perform K-Means clustering analysis :
+    _intensities = img.flatten().reshape(-1, 1)
+    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=verbose).fit(_intensities)
+    _centers = pd.core.frame.DataFrame({
+        "means": chain.from_iterable(_kmeans.cluster_centers_)
+    })
+    
+    # We obtain our threshold values as pairwise means between cluster centers.
+    _centers['k'] = _centers.rolling(2).mean()
+    
+    # Find _max and _min values for segmentation, according to the image dtype
+    _floats    = [np.float, np.float16, np.float32, np.float64, np.float128]
+    _iffloat   = partial(
+        lambda im, f_val, i_val: f_val if im.dtype in _floats else i_val, 
+        img
+    )
+    _max, _min = list(map(_iffloat, [1.0, 0.0], [255, 0]))
+    
+    # Create the values that will 
+    _fill_vals = np.linspace(_min, _max, groups, dtype=img.dtype) 
+    
+    dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
+    for fill, k in zip(_fill_vals[1:], _centers['k'].dropna().tolist()):
+        dst[ dst > k ] = fill
+    
+    if verbose:
+        fig = plt.figure(figsize = _figsize)
+        
+        fig.add_subplot(1, 3, 1)
+        plt.imshow(img, cmap = 'gray')
+        
+        lmap(lambda x: plt.axvline(x, color='r'), _centers.k.dropna())
+        lmap(lambda x: plt.axvline(x, color='g'), _centers.means)
+        _ = sns.distplot(_intensities, kde=False, rug=True)
+        
+    return dst
+        
+    
+
+
 # In[5]:
 
 
@@ -79,11 +141,17 @@ files
 
 # Todas nuestras imágenes de interés contienen la cadena de caracteres 'flujo.png'.
 
-# In[7]:
+# In[83]:
+
+
+llaves = lmap(lambda x: os.path.split(x)[-1], files)
+
+
+# In[84]:
 
 
 mangueras = {
-    f"{nombre}": imread(file) for file, nombre in zip(files, lmap(lambda x: os.path.split(x)[-1], files)) 
+    f"{nombre}": imread(file) for file, nombre in zip(files, llaves) 
 }
 
 
@@ -178,15 +246,19 @@ for nombre in mangueras.keys():
 mangueras_segmentadas = copy.deepcopy(mangueras)
 
 
-# In[72]:
+# In[91]:
 
 
 for i in mangueras_segmentadas.keys():
-    mask = np.nonzero(mangueras_segmentadas[i] < K)
-    mangueras_segmentadas[i][mask] = 0
+    mangueras_segmentadas[i][
+        np.nonzero(mangueras_segmentadas[i] < K)
+    ] = 0
+    mangueras_segmentadas[i][
+        np.nonzero(mangueras_segmentadas[i] >= K)
+    ] = 1
 
 
-# In[73]:
+# In[92]:
 
 
 for nombre in mangueras_segmentadas.keys():
@@ -195,10 +267,16 @@ for nombre in mangueras_segmentadas.keys():
     plt.title(nombre)
 
 
-# In[74]:
+# In[102]:
 
 
 reg_ref_segmentadas = copy.deepcopy(mangueras)
+
+
+# In[ ]:
+
+
+reg_ref_segmentadas = 
 
 
 # In[75]:
@@ -222,6 +300,81 @@ for nombre in reg_ref_segmentadas.keys():
 
 
 sns.distplot(reg_ref_segmentadas['altoflujo.png'].flatten())
+
+
+# In[80]:
+
+
+intensities2 = pd.core.frame.DataFrame({
+    key: reg_ref_segmentadas[key].flatten() for key in reg_ref_segmentadas.keys()
+})
+
+
+# In[101]:
+
+
+"""kmeans2 = KMeans(
+    n_clusters=2, 
+    random_state=0, 
+    verbose=False
+).fit(
+    intensities2.
+)"""
+
+
+# In[93]:
+
+
+seg = mangueras[llaves[0]] * 
+
+
+# In[98]:
+
+
+seg.max(), mangueras[llaves[0]].max(), mangueras_segmentadas[llaves[0]].max()
+
+
+# In[99]:
+
+
+utils.side_by_side(mangueras[llaves[0]], seg)
+
+
+# In[100]:
+
+
+utils.side_by_side(mangueras_segmentadas[llaves[0]], seg)
+
+
+# In[108]:
+
+
+mangueras_segmentadas[llaves[0]].dtype
+
+
+# In[133]:
+
+
+_tmp_img = mangueras[llaves[0]]
+utils.side_by_side(_tmp_img, auto_segment(_tmp_img, groups=2))
+
+
+# In[117]:
+
+
+_tmp_img.flatten().reshape(-1, 1)
+
+
+# In[123]:
+
+
+y = [[1, 2], [3, 4]]
+
+
+# In[125]:
+
+
+print(*y)
 
 
 # In[ ]:

@@ -132,19 +132,26 @@ def auto_segment(
     return dst
 
 
-# In[248]:
+# In[249]:
 
 
 _tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, verbose=True, groups=3)
+mask = auto_segment(_tmp_img, verbose=False, groups=2)
 #sns.distplot(mask.flatten())
 #utils.side_by_side(_tmp_img, mask)
 
 
-# In[233]:
+# In[253]:
 
 
 sns.distplot(mask.flatten())
+pd.core.frame.DataFrame(mask.flatten()).describe()
+
+
+# In[252]:
+
+
+#mfs.img_surf(_tmp_img)
 
 
 # In[5]:

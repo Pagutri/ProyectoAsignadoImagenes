@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[247]:
+# In[264]:
 
 
 
@@ -82,8 +82,12 @@ def auto_segment(
     
     assert type(groups) is int, f"type(groups) == '{type(groups)}', it should be int."
     
-    #Create the destination image from the image passed to the function.
-    dst: np.ndarray = copy.deepcopy(img)
+    #Create the destination image from the image passed to the function, casting it.
+    _floats = [np.float, np.float16, np.float32, np.float64, np.float128]
+    if img.dtype in _floats:
+        dst: np.ndarray = copy.deepcopy(img)
+    else:
+        dst: np.ndarray = copy.deepcopy(np.float64(img) / 255)
     
     # We perform K-Means clustering analysis :
     _intensities = img.flatten().reshape(-1, 1)
@@ -96,22 +100,18 @@ def auto_segment(
     # We obtain our threshold values as pairwise means between cluster centers.
     _centers['k'] = _centers.rolling(2).mean()
     
-    # Find _max and _min values for segmentation, according to the image dtype
-    _floats    = [np.float, np.float16, np.float32, np.float64, np.float128]
-    _iffloat   = partial(
-        lambda im, f_val, i_val: f_val if im.dtype in _floats else i_val, 
-        img
-    )
-    _max, _min = list(map(_iffloat, [1.0, 0.0], [255, 0]))
-    
     # Create the values that will fill the image, according to the thresholds.
-    _fill_vals = np.linspace(_min, _max, groups, dtype=img.dtype)
+    _fill_vals = np.linspace(0, 1, groups, dtype=np.float64)
     
     # dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
     ks = [0] + _centers['k'].dropna().tolist()
     for j in range(len(ks) - 1):
-        _mask = np.nonzero( (dst > ks[j]) & (dst < ks[j+1]) )
+        _mask = np.nonzero( (img > ks[j]) & (img < ks[j+1]) )
         dst[ _mask ] = _fill_vals[j]
+    
+    _mask = np.nonzero( img > ks[-1] )
+    dst[ _mask ] = _fill_vals[-1]
+    
     
     if verbose:
         fig = plt.figure(figsize = figsize)
@@ -132,16 +132,16 @@ def auto_segment(
     return dst
 
 
-# In[249]:
+# In[267]:
 
 
 _tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, verbose=False, groups=2)
+mask = auto_segment(_tmp_img, verbose=True, groups=3)
 #sns.distplot(mask.flatten())
 #utils.side_by_side(_tmp_img, mask)
 
 
-# In[253]:
+# In[268]:
 
 
 sns.distplot(mask.flatten())

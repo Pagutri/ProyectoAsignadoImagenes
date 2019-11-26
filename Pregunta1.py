@@ -195,6 +195,8 @@ for i in intensities:
     sns.distplot(intensities[i],  kde=False)
 
 
+# Nótese lo similares que son las distribuciones de las intensidades, independientemente de la intensidad del flujo.
+
 # In[19]:
 
 
@@ -252,6 +254,23 @@ _ = plt.title(f"Means = {lmap(np.mean, centers)}, K = {K}", size=16)
 for nombre in mangueras.keys():
     plt.figure()
     plt.imshow(mangueras[nombre], cmap="gray")
+    plt.title(nombre)
+
+
+# In[285]:
+
+
+mangueras_segmentadas = {
+    key: auto_segment(mangueras[key]) for key in mangueras.keys()
+}
+
+
+# In[286]:
+
+
+for nombre in mangueras_segmentadas.keys():
+    plt.figure()
+    plt.imshow(mangueras_segmentadas[nombre], cmap="gray")
     plt.title(nombre)
 
 
@@ -392,11 +411,11 @@ y = [[1, 2], [3, 4]]
 print(*y)
 
 
-# In[283]:
+# In[284]:
 
 
 _tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, groups=4)
+mask = auto_segment(_tmp_img, groups=2)
 sns.distplot(mask.flatten())
 utils.side_by_side(_tmp_img, mask)
 

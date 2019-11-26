@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[155]:
+# In[175]:
 
 
 
@@ -104,12 +104,16 @@ def auto_segment(
     )
     _max, _min = list(map(_iffloat, [1.0, 0.0], [255, 0]))
     
-    # Create the values that will 
+    # Create the values that will fill the image, according to the thresholds.
     _fill_vals = np.linspace(_min, _max, groups, dtype=img.dtype) 
+    print(_fill_vals)
     
     dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
     for fill, k in zip(_fill_vals[1:], _centers['k'].dropna().tolist()):
-        dst[ dst > k ] = fill
+        print(fill)
+        _mask = dst < k
+        print(_mask)
+        dst[ _mask ] = fill
     
     if verbose:
         fig = plt.figure(figsize = figsize)
@@ -386,16 +390,36 @@ y = [[1, 2], [3, 4]]
 print(*y)
 
 
-# In[157]:
+# In[ ]:
 
 
-auto_segment(mangueras[llaves[0]], verbose=True, groups=3)
 
 
-# In[147]:
+
+# In[176]:
 
 
-auto_segment(mangueras[llaves[0]], verbose=True, groups=2)
+_tmp_img = mangueras[llaves[0]]
+mask = auto_segment(_tmp_img, verbose=True, groups=5)
+utils.side_by_side(_tmp_img, mask)
+
+
+# In[167]:
+
+
+sns.distplot(mask.flatten())
+
+
+# In[170]:
+
+
+mask[ mask == 63 ].shape
+
+
+# In[177]:
+
+
+2*512*512
 
 
 # In[ ]:

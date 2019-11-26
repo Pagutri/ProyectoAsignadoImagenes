@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[128]:
+# In[142]:
 
 
 
@@ -74,7 +74,7 @@ def auto_segment(
     groups: int = 2, 
     verbose: bool = False, 
     save_file: Optional[str] = None,
-    figsize: Optional[Tuple[int]] = (15, 10)
+    figsize: Optional[Tuple[int]] = (12, 8)
 ) -> np.ndarray:
     """
         
@@ -109,14 +109,20 @@ def auto_segment(
         dst[ dst > k ] = fill
     
     if verbose:
-        fig = plt.figure(figsize = _figsize)
-        
-        fig.add_subplot(1, 3, 1)
-        plt.imshow(img, cmap = 'gray')
-        
+        fig = plt.figure(figsize = figsize)
         lmap(lambda x: plt.axvline(x, color='r'), _centers.k.dropna())
         lmap(lambda x: plt.axvline(x, color='g'), _centers.means)
-        _ = sns.distplot(_intensities, kde=False, rug=True)
+        _ = sns.distplot(_intensities, kde=False)
+        
+        fig2 = plt.figure(figsize = figsize)
+        fig2.add_subplot(1, 2, 1)
+        plt.imshow(img, cmap = 'gray')
+        plt.title('hola')
+        fig2.add_subplot(1, 2, 2)
+        plt.imshow(dst, cmap = 'gray')
+        plt.title('como estas')
+        
+        
         
     return dst
         
@@ -375,6 +381,18 @@ y = [[1, 2], [3, 4]]
 
 
 print(*y)
+
+
+# In[144]:
+
+
+auto_segment(mangueras[llaves[0]], verbose=True, groups=3)
+
+
+# In[145]:
+
+
+auto_segment(mangueras[llaves[0]], verbose=True, groups=2)
 
 
 # In[ ]:

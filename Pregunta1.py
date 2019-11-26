@@ -116,7 +116,32 @@ for i in intensities:
 
 
 kmeans = KMeans(n_clusters=2, random_state=0, verbose=False).fit(intensities)
+
+
+# In[55]:
+
+
+kmeans.cluster_centers_.shape
+
+
+# In[56]:
+
+
+kmeans.cluster_centers_[:,0]
+
+
+# In[59]:
+
+
+Ks = [kmeans.cluster_centers_[:,i].mean() for i in range(kmeans.cluster_centers_.shape[1])]
+Ks
+
+
+# In[60]:
+
+
 K = np.floor(kmeans.cluster_centers_.mean())
+K
 
 
 # In[24]:
@@ -138,7 +163,7 @@ _ = plt.title(f"Means = {lmap(np.mean, centers)}, K = {K}", size=16)
 
 # Las líneas verdes respresentan las respectivas medias los cúmulos de intensidades de cada imagen. Las líneas azules representan las medias globales a través de las imágenes. La línea roja en medio de ambas es nuestro umbral.
 
-# In[33]:
+# In[61]:
 
 
 for nombre in mangueras.keys():
@@ -147,27 +172,56 @@ for nombre in mangueras.keys():
     plt.title(nombre)
 
 
-# In[36]:
+# In[71]:
 
 
-segmentadas = copy.deepcopy(mangueras)
+mangueras_segmentadas = copy.deepcopy(mangueras)
 
 
-# In[41]:
+# In[72]:
 
 
-for i in segmentadas.keys():
-    mask = np.nonzero(segmentadas[i] < K)
-    segmentadas[i][mask] = 0
+for i in mangueras_segmentadas.keys():
+    mask = np.nonzero(mangueras_segmentadas[i] < K)
+    mangueras_segmentadas[i][mask] = 0
 
 
-# In[42]:
+# In[73]:
 
 
-for nombre in segmentadas.keys():
+for nombre in mangueras_segmentadas.keys():
     plt.figure()
-    plt.imshow(segmentadas[nombre], cmap="gray")
+    plt.imshow(mangueras_segmentadas[nombre], cmap="gray")
     plt.title(nombre)
+
+
+# In[74]:
+
+
+reg_ref_segmentadas = copy.deepcopy(mangueras)
+
+
+# In[75]:
+
+
+for i in reg_ref_segmentadas.keys():
+    mask = np.nonzero(reg_ref_segmentadas[i] > K)
+    reg_ref_segmentadas[i][mask] = 0
+
+
+# In[76]:
+
+
+for nombre in reg_ref_segmentadas.keys():
+    plt.figure()
+    plt.imshow(reg_ref_segmentadas[nombre], cmap="gray")
+    plt.title(nombre)
+
+
+# In[79]:
+
+
+sns.distplot(reg_ref_segmentadas['altoflujo.png'].flatten())
 
 
 # In[ ]:

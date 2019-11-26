@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[264]:
+# In[277]:
 
 
 
@@ -82,7 +82,7 @@ def auto_segment(
     
     assert type(groups) is int, f"type(groups) == '{type(groups)}', it should be int."
     
-    #Create the destination image from the image passed to the function, casting it.
+    #Create the destination image from the image passed to the function, casting it when needed.
     _floats = [np.float, np.float16, np.float32, np.float64, np.float128]
     if img.dtype in _floats:
         dst: np.ndarray = copy.deepcopy(img)
@@ -103,12 +103,11 @@ def auto_segment(
     # Create the values that will fill the image, according to the thresholds.
     _fill_vals = np.linspace(0, 1, groups, dtype=np.float64)
     
-    # dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
+    # Fill the image with trheshold values.
     ks = [0] + _centers['k'].dropna().tolist()
     for j in range(len(ks) - 1):
         _mask = np.nonzero( (img > ks[j]) & (img < ks[j+1]) )
         dst[ _mask ] = _fill_vals[j]
-    
     _mask = np.nonzero( img > ks[-1] )
     dst[ _mask ] = _fill_vals[-1]
     
@@ -130,28 +129,13 @@ def auto_segment(
         
         
     return dst
+##
 
 
-# In[267]:
+# In[ ]:
 
 
-_tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, verbose=True, groups=3)
-#sns.distplot(mask.flatten())
-#utils.side_by_side(_tmp_img, mask)
 
-
-# In[268]:
-
-
-sns.distplot(mask.flatten())
-pd.core.frame.DataFrame(mask.flatten()).describe()
-
-
-# In[252]:
-
-
-#mfs.img_surf(_tmp_img)
 
 
 # In[5]:
@@ -408,10 +392,13 @@ y = [[1, 2], [3, 4]]
 print(*y)
 
 
-# In[ ]:
+# In[283]:
 
 
-
+_tmp_img = mangueras[llaves[0]]
+mask = auto_segment(_tmp_img, groups=4)
+sns.distplot(mask.flatten())
+utils.side_by_side(_tmp_img, mask)
 
 
 # In[196]:

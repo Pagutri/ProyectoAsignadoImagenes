@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[142]:
+# In[155]:
 
 
 
@@ -89,9 +89,12 @@ def auto_segment(
     _centers = pd.core.frame.DataFrame({
         "means": chain.from_iterable(_kmeans.cluster_centers_)
     })
+    _centers = _centers.sort_values(by=['means'])
     
     # We obtain our threshold values as pairwise means between cluster centers.
     _centers['k'] = _centers.rolling(2).mean()
+    
+    print(_centers)
     
     # Find _max and _min values for segmentation, according to the image dtype
     _floats    = [np.float, np.float16, np.float32, np.float64, np.float128]
@@ -383,13 +386,13 @@ y = [[1, 2], [3, 4]]
 print(*y)
 
 
-# In[144]:
+# In[157]:
 
 
 auto_segment(mangueras[llaves[0]], verbose=True, groups=3)
 
 
-# In[145]:
+# In[147]:
 
 
 auto_segment(mangueras[llaves[0]], verbose=True, groups=2)

@@ -65,7 +65,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[229]:
+# In[247]:
 
 
 
@@ -77,15 +77,17 @@ def auto_segment(
     figsize: Optional[Tuple[int]] = (12, 8)
 ) -> np.ndarray:
     """
-        
+        Segment (by thresholding)
     """
+    
+    assert type(groups) is int, f"type(groups) == '{type(groups)}', it should be int."
     
     #Create the destination image from the image passed to the function.
     dst: np.ndarray = copy.deepcopy(img)
     
     # We perform K-Means clustering analysis :
     _intensities = img.flatten().reshape(-1, 1)
-    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=False).fit(_intensities)
+    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=verbose).fit(_intensities)
     _centers = pd.core.frame.DataFrame({
         "means": chain.from_iterable(_kmeans.cluster_centers_)
     })
@@ -93,8 +95,6 @@ def auto_segment(
     
     # We obtain our threshold values as pairwise means between cluster centers.
     _centers['k'] = _centers.rolling(2).mean()
-    
-    print(_centers)
     
     # Find _max and _min values for segmentation, according to the image dtype
     _floats    = [np.float, np.float16, np.float32, np.float64, np.float128]
@@ -106,14 +106,11 @@ def auto_segment(
     
     # Create the values that will fill the image, according to the thresholds.
     _fill_vals = np.linspace(_min, _max, groups, dtype=img.dtype)
-    print(_fill_vals)
     
     # dst[ dst < _centers['k'].dropna().tolist()[0]] = _fill_vals[0]
     ks = [0] + _centers['k'].dropna().tolist()
     for j in range(len(ks) - 1):
-        print(_fill_vals[j])
         _mask = np.nonzero( (dst > ks[j]) & (dst < ks[j+1]) )
-        print(_mask)
         dst[ _mask ] = _fill_vals[j]
     
     if verbose:
@@ -125,23 +122,21 @@ def auto_segment(
         fig2 = plt.figure(figsize = figsize)
         fig2.add_subplot(1, 2, 1)
         plt.imshow(img, cmap = 'gray')
-        plt.title('hola')
+        plt.title('Original')
         fig2.add_subplot(1, 2, 2)
         plt.imshow(dst, cmap = 'gray')
-        plt.title('como estas')
+        plt.title(f"Threshold ({groups} groups)")
         
         
         
     return dst
-        
-    
 
 
-# In[235]:
+# In[248]:
 
 
 _tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, verbose=True, groups=10)
+mask = auto_segment(_tmp_img, verbose=True, groups=3)
 #sns.distplot(mask.flatten())
 #utils.side_by_side(_tmp_img, mask)
 

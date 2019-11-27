@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[103]:
+# In[1]:
 
 
 # Type annotations :
 from typing import Tuple, List, Optional, NoReturn, Callable, Any
-
 
 # Standard and OS :
 import copy
@@ -65,7 +64,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[277]:
+# In[5]:
 
 
 
@@ -132,19 +131,13 @@ def auto_segment(
 ##
 
 
-# In[ ]:
-
-
-
-
-
-# In[5]:
+# In[6]:
 
 
 ls images/
 
 
-# In[6]:
+# In[7]:
 
 
 cwd  = os.path.abspath('.')
@@ -156,13 +149,13 @@ files
 
 # Todas nuestras imágenes de interés contienen la cadena de caracteres 'flujo.png'.
 
-# In[83]:
+# In[8]:
 
 
 llaves = lmap(lambda x: os.path.split(x)[-1], files)
 
 
-# In[84]:
+# In[9]:
 
 
 mangueras = {
@@ -170,7 +163,7 @@ mangueras = {
 }
 
 
-# In[8]:
+# In[10]:
 
 
 intensities = pd.core.frame.DataFrame({
@@ -188,7 +181,7 @@ sns.pairplot(intensities)
 
 # Podemos observar una gran correlación entre las intensidades de todas las imágenes.
 
-# In[17]:
+# In[11]:
 
 
 for i in intensities:
@@ -197,58 +190,7 @@ for i in intensities:
 
 # Nótese lo similares que son las distribuciones de las intensidades, independientemente de la intensidad del flujo.
 
-# In[19]:
-
-
-kmeans = KMeans(n_clusters=2, random_state=0, verbose=False).fit(intensities)
-
-
-# In[55]:
-
-
-kmeans.cluster_centers_.shape
-
-
-# In[56]:
-
-
-kmeans.cluster_centers_[:,0]
-
-
-# In[59]:
-
-
-Ks = [kmeans.cluster_centers_[:,i].mean() for i in range(kmeans.cluster_centers_.shape[1])]
-Ks
-
-
-# In[60]:
-
-
-K = np.floor(kmeans.cluster_centers_.mean())
-K
-
-
-# In[24]:
-
-
-centers = np.floor(kmeans.cluster_centers_)
-
-
-# In[31]:
-
-
-for i in intensities:
-    sns.distplot(intensities[i],  kde=False)
-plt.axvline(K, color='r')
-lmap(lambda x: plt.axvline(x, color='g'), centers.flatten())
-lmap(lambda x: plt.axvline(x, color='b'), lmap(np.mean, centers))
-_ = plt.title(f"Means = {lmap(np.mean, centers)}, K = {K}", size=16)
-
-
-# Las líneas verdes respresentan las respectivas medias los cúmulos de intensidades de cada imagen. Las líneas azules representan las medias globales a través de las imágenes. La línea roja en medio de ambas es nuestro umbral.
-
-# In[285]:
+# In[16]:
 
 
 mangueras_segmentadas = {
@@ -256,65 +198,119 @@ mangueras_segmentadas = {
 }
 
 
-# In[292]:
+# Aquí segmentamos automáticamente la región de la manguera, gracias al gran contraste que existe entre éste nuestro ente de interés y el fondo (muy claro el primero, oscuro el segundo).
+# 
+# Usamos la función que diseñamos : ```auto_segment()```
+
+# In[18]:
 
 
 for nombre in mangueras.keys():
     utils.side_by_side(
         mangueras[nombre], mangueras_segmentadas[nombre], 
-        title1=nombre, title2=f"{nombre} : line_segmented"
+        title1=nombre, title2=f"{nombre} : manguera segmentada"
     )
 
 
-# In[286]:
+# Aquí podemos observar las imágenes con su respectiva máscara de segmentación.
+
+# In[35]:
 
 
-for nombre in mangueras_segmentadas.keys():
-    plt.figure()
-    plt.imshow(mangueras_segmentadas[nombre], cmap="gray")
-    plt.title(nombre)
+region_ref1 = {
+    key: auto_segment(mangueras[key], groups=3) for key in mangueras.keys()
+}
 
 
-# In[71]:
+# In[36]:
 
 
-mangueras_segmentadas = copy.deepcopy(mangueras)
+for nombre in mangueras.keys():
+    utils.side_by_side(
+        mangueras[nombre], region_ref1[nombre], 
+        title1=nombre, title2=f"{nombre} : región de referencia segmentada"
+    )
 
 
-# In[91]:
+# Aquí podemos observar que la referencia es más difícil de segmentar en función de las intensidades. 
+# 
+# La función fue llamada indicando que se buscaba una imagen trinaria ```auto_seg(img, groups=3)```
+# Se esperaba que esto permitiese segmentar la **región referencia** ya que ésta muestra una intensidad mayor a la del fondo pero menor a la de la manguera.
+# 
+# Tal vez quitando la región de la manguera (la de mayor intensidad) sea más fácil segmentar automáticamente la **región referencia**.
+
+# In[37]:
 
 
-for i in mangueras_segmentadas.keys():
-    mangueras_segmentadas[i][
-        np.nonzero(mangueras_segmentadas[i] < K)
-    ] = 0
-    mangueras_segmentadas[i][
-        np.nonzero(mangueras_segmentadas[i] >= K)
-    ] = 1
+sin_manguera = {
+    key: mangueras[key] * np.uint8(1.0 - mangueras_segmentadas[key])
+    for key in mangueras_segmentadas.keys()
+}
+plt.imshow(sin_manguera[llaves[0]], cmap='gray')
 
 
-# In[92]:
+# Nótese que la imagen muestra en negro la región que antes mostraba la mayor intensidad.
+
+# In[38]:
 
 
-for nombre in mangueras_segmentadas.keys():
-    plt.figure()
-    plt.imshow(mangueras_segmentadas[nombre], cmap="gray")
-    plt.title(nombre)
+sin_manguera = {
+    key: mangueras[key] * np.uint8(1.0 - mangueras_segmentadas[key])
+    for key in mangueras_segmentadas.keys()
+}
 
 
-# In[102]:
+# In[39]:
 
 
-reg_ref_segmentadas = copy.deepcopy(mangueras)
+region_ref2 = {
+    key: auto_segment(sin_manguera[key], groups=2) for key in sin_manguera.keys()
+}
+
+
+# In[41]:
+
+
+for nombre in sin_manguera.keys():
+    utils.side_by_side(
+        sin_manguera[nombre], region_ref2[nombre], 
+        title1=nombre, title2=f"{nombre} : región de referencia segmentada"
+    )
+
+
+# Una segmentación automática, por umbralización binaria, en el 
+
+# In[42]:
+
+
+region_ref3 = {
+    key: auto_segment(sin_manguera[key], groups=3) for key in sin_manguera.keys()
+}
+
+
+# In[43]:
+
+
+for nombre in sin_manguera.keys():
+    utils.side_by_side(
+        sin_manguera[nombre], region_ref3[nombre], 
+        title1=nombre, title2=f"{nombre} : región de referencia segmentada"
+    )
 
 
 # In[ ]:
 
 
-reg_ref_segmentadas = 
 
 
-# In[75]:
+
+# In[34]:
+
+
+mangueras_segmentadas[llaves[0]]
+
+
+# In[24]:
 
 
 for i in reg_ref_segmentadas.keys():

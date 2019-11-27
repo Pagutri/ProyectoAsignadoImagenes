@@ -248,21 +248,22 @@ _ = plt.title(f"Means = {lmap(np.mean, centers)}, K = {K}", size=16)
 
 # Las líneas verdes respresentan las respectivas medias los cúmulos de intensidades de cada imagen. Las líneas azules representan las medias globales a través de las imágenes. La línea roja en medio de ambas es nuestro umbral.
 
-# In[61]:
-
-
-for nombre in mangueras.keys():
-    plt.figure()
-    plt.imshow(mangueras[nombre], cmap="gray")
-    plt.title(nombre)
-
-
 # In[285]:
 
 
 mangueras_segmentadas = {
     key: auto_segment(mangueras[key]) for key in mangueras.keys()
 }
+
+
+# In[292]:
+
+
+for nombre in mangueras.keys():
+    utils.side_by_side(
+        mangueras[nombre], mangueras_segmentadas[nombre], 
+        title1=nombre, title2=f"{nombre} : line_segmented"
+    )
 
 
 # In[286]:

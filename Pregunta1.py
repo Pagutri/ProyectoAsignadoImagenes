@@ -64,7 +64,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[5]:
+# In[59]:
 
 
 
@@ -90,8 +90,11 @@ def auto_segment(
         dst: np.ndarray = copy.deepcopy(np.float64(img) / 255)
     
     # We perform K-Means clustering analysis :
-    _intensities = img.flatten().reshape(-1, 1)
-    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=verbose).fit(_intensities)
+    _intensities = img.flatten()
+    _show_intensities = _intensities.copy()
+    if nonzero:
+        _intensities = _intensities[_intensities.nonzero()]
+    _kmeans = KMeans(n_clusters=groups, random_state=0, verbose=verbose).fit(_intensities.reshape(-1, 1))
     _centers = pd.core.frame.DataFrame({
         "means": chain.from_iterable(_kmeans.cluster_centers_)
     })
@@ -116,7 +119,7 @@ def auto_segment(
         fig = plt.figure(figsize = figsize)
         lmap(lambda x: plt.axvline(x, color='r'), _centers.k.dropna())
         lmap(lambda x: plt.axvline(x, color='g'), _centers.means)
-        _ = sns.distplot(_intensities, kde=False)
+        _ = sns.distplot(_show_intensities, kde=False)
         
         fig2 = plt.figure(figsize = figsize)
         fig2.add_subplot(1, 2, 1)
@@ -261,15 +264,15 @@ sin_manguera = {
 }
 
 
-# In[39]:
+# In[65]:
 
 
 region_ref2 = {
-    key: auto_segment(sin_manguera[key], groups=2) for key in sin_manguera.keys()
+    key: auto_segment(sin_manguera[key], groups=2, nonzero=True) for key in sin_manguera.keys()
 }
 
 
-# In[41]:
+# In[66]:
 
 
 for nombre in sin_manguera.keys():
@@ -279,7 +282,22 @@ for nombre in sin_manguera.keys():
     )
 
 
-# Aún teniendo la región de la manguera oscurecida, la función ```auto_seg()``` no permite segmentar la **región referencia** de forma automática. Esto se debe probablemente a que la forma del histograma de las ***imágenes con la manguera oscurecida*** sigue mostrando dos cúmulos principales como se muestra a continuación.
+# Aún teniendo la región de la manguera oscurecida, la función ```auto_seg()``` no permite segmentar la **región referencia** de forma automática. Esto podría atribuirse a que la forma del histograma de las ***imágenes con la manguera oscurecida*** sigue mostrando dos cúmulos principales como se muestra a continuación.
+# 
+# Sin embargo, debe notarse que la funcción ```auto_seg(.., nonzero=True)``` fue llamada con el parámetro ```nonzero=True```, lo que hace que la funcón ignore las entradas que valen 0 al momento de calcular los centros de los grupos.
+# 
+# Si se desea una visualización más detallada del funcionamiento de este parámetro, se recomienda correr este código, en dos celdas por separado para observar el efecto del parámetro ```nonzero``` :
+# ```python
+# region_ref2 = {
+#     key: auto_segment(sin_manguera[key], groups=2, nonzero=True, verbose=True) for key in sin_manguera.keys()
+# }
+# ```
+# por
+# ```python
+# region_ref2 = {
+#     key: auto_segment(sin_manguera[key], groups=2, nonzero=False, verbose=True) for key in sin_manguera.keys()
+# }
+# ```
 
 # In[44]:
 
@@ -287,15 +305,15 @@ for nombre in sin_manguera.keys():
 sns.distplot(sin_manguera[llaves[2]].flatten())
 
 
-# In[42]:
+# In[69]:
 
 
 region_ref3 = {
-    key: auto_segment(sin_manguera[key], groups=3) for key in sin_manguera.keys()
+    key: auto_segment(sin_manguera[key], groups=3, nonzero=True) for key in sin_manguera.keys()
 }
 
 
-# In[43]:
+# In[70]:
 
 
 for nombre in sin_manguera.keys():

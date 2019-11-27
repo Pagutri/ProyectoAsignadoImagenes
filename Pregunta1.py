@@ -70,7 +70,8 @@ plt.rcParams['figure.figsize'] = (12, 8)
 
 def auto_segment(
     img: np.ndarray, 
-    groups: int = 2, 
+    groups: int = 2,
+    nonzero: bool = False,
     verbose: bool = False, 
     save_file: Optional[str] = None,
     figsize: Optional[Tuple[int]] = (12, 8)
@@ -278,7 +279,13 @@ for nombre in sin_manguera.keys():
     )
 
 
-# Una segmentación automática, por umbralización binaria, en el 
+# Aún teniendo la región de la manguera oscurecida, la función ```auto_seg()``` no permite segmentar la **región referencia** de forma automática. Esto se debe probablemente a que la forma del histograma de las ***imágenes con la manguera oscurecida*** sigue mostrando dos cúmulos principales como se muestra a continuación.
+
+# In[44]:
+
+
+sns.distplot(sin_manguera[llaves[2]].flatten())
+
 
 # In[42]:
 

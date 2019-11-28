@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[109]:
 
 
 # Type annotations :
@@ -18,12 +18,20 @@ import importlib # Required to reload a module
 import multiprocessing as mp
 
 # Image processing :
-import skimage
 import cv2 as cv
+import skimage
+from skimage.feature import canny
+from skimage.util.dtype import dtype_range
+from skimage.util import img_as_ubyte
+from skimage import exposure
+from skimage.morphology import disk
+from skimage.filters import rank
+from skimage.measure import label, regionprops
 
 # Numeric :
 import numpy as np
 import pandas as pd
+from scipy import ndimage as ndi
 
 # Visualisation :
 import matplotlib.pyplot as plt
@@ -321,6 +329,76 @@ for nombre in sin_manguera.keys():
         sin_manguera[nombre], region_ref3[nombre], 
         title1=nombre, title2=f"{nombre} : región de referencia segmentada"
     )
+
+
+# In[89]:
+
+
+edges = canny(mangueras[llaves[0]] /255.)
+fill_coins = ndi.binary_fill_holes(edges)
+
+
+# In[90]:
+
+
+plt.imshow(fill_coins, cmap='gray')
+
+
+# In[129]:
+
+
+# Equalization
+img1 = mangueras[llaves[2]]
+selem = disk(5)
+img_eq = rank.equalize(img1, selem=selem)
+utils.side_by_side(img1, img_eq)
+
+
+# In[134]:
+
+
+edges = canny(img_eq, sigma=3)
+filled = ndi.binary_fill_holes(edges)
+utils.side_by_side(img1, filled)
+
+
+# In[148]:
+
+
+eroded = utils.closing(
+    utils.opening(np.float64(filled), np.ones((10, 10))), np.ones((1, 1))
+)
+plt.imshow(eroded, cmap='gray')
+
+
+# In[150]:
+
+
+for img1 in mangueras.values():
+    selem = disk(5)
+    img_eq = rank.equalize(img1, selem=selem)
+    utils.side_by_side(img1, img_eq)
+    edges = canny(img_eq, sigma=3)
+    filled = ndi.binary_fill_holes(edges)
+    utils.side_by_side(img_eq, filled)
+    eroded = utils.closing(
+        utils.opening(np.float64(filled), np.ones((10, 10))), np.ones((5, 5))
+    )
+    utils.side_by_side(filled, eroded)
+
+
+# In[110]:
+
+
+label_image, n_objs = label(filled, return_num=True)
+
+
+# In[112]:
+
+
+fig, ax = plt.subplots(figsize=(10, 10))
+ax.imshow(label_image)
+print(n_objs)
 
 
 # In[ ]:

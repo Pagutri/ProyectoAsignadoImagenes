@@ -176,3 +176,84 @@ def closing(src: np.ndarray, kernel: np.ndarray, iterations: int = 1) -> np.ndar
     return cv.erode(cv.dilate(src, kernel, iterations=iterations), kernel, iterations=iterations)
 ##
 
+def segplot(
+    img: np.ndarray, 
+    group: skimage.measure._regionprops.RegionProperties, 
+    color: Optional[str] = None,
+    title: Optional[str] = None
+) -> NoReturn:
+    """
+    """
+    if not color:
+        color = 'red'
+        
+    fig, ax = plt.subplots(figsize=(9, 9))
+    ax.imshow(imgb2c, cmap='gray')
+
+    for region in group:
+        minr, minc, maxr, maxc = region.bbox
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                  fill=False, edgecolor=color, linewidth=2)
+        ax.add_patch(rect)
+    
+    if title:
+        plt.title(title)
+    plt.tight_layout()
+    plt.show()
+##
+
+def image_show(image, nrows=1, ncols=1, cmap='gray', **kwargs):
+    """
+        Taken from :
+        https://github.com/gmagannaDevelop/skimage-tutorials/blob/master/lectures/4_segmentation.ipynb
+    """
+    fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(16, 16))
+    ax.imshow(image, cmap='gray')
+    ax.axis('off')
+    return fig, ax
+##
+
+def watershed_viz(image, distance, labels):
+    """
+        Constructed from the example found in :
+        https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_watershed.html
+    """
+    fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
+    ax = axes.ravel()
+
+    ax[0].imshow(image, cmap=plt.cm.gray)
+    ax[0].set_title('Overlapping objects')
+    ax[1].imshow(-distance, cmap=plt.cm.gray)
+    ax[1].set_title('Distances')
+    ax[2].imshow(labels, cmap=plt.cm.nipy_spectral)
+    ax[2].set_title('Separated objects')
+
+    for a in ax:
+        a.set_axis_off()
+
+    fig.tight_layout()
+    plt.show()
+##
+
+def ez_watershed(image: np.ndarray, footprint: Optional[np.array] = None, **kw) -> Tuple[int, int, int]:
+    """
+    """
+    distance = ndi.distance_transform_edt(image)
+    if footprint is not None:
+        fp = footprint
+    else:
+        fp = np.ones((10, 10))
+    local_maxi = peak_local_max(
+        distance, 
+        indices=False, 
+        footprint=np.ones((10, 10)),
+        labels=image,
+        **kw
+    )
+    markers = ndi.label(local_maxi)[0]
+    labels  = watershed(-distance, markers, mask=image)
+    
+    return markers, distance, labels
+##
+
+

@@ -371,60 +371,31 @@ edges = canny(mangueras[llaves[0]] /255.)
 fill_coins = ndi.binary_fill_holes(edges)
 
 
-# In[90]:
+# In[158]:
 
 
-plt.imshow(fill_coins, cmap='gray')
+verbose = False
+
+if verbose:
+    for img1 in mangueras.values():
+        ref_region(img1, verbose=True)
 
 
-# In[129]:
+# In[164]:
 
 
-# Equalization
-img1 = mangueras[llaves[2]]
-selem = disk(5)
-img_eq = rank.equalize(img1, selem=selem)
-utils.side_by_side(img1, img_eq)
+region_ref4 = {
+    key: ref_region(mangueras[key]) for key in mangueras.keys()
+}
 
 
-# In[134]:
+# In[167]:
 
 
-edges = canny(img_eq, sigma=3)
-filled = ndi.binary_fill_holes(edges)
-utils.side_by_side(img1, filled)
-
-
-# In[148]:
-
-
-eroded = utils.closing(
-    utils.opening(np.float64(filled), np.ones((10, 10))), np.ones((1, 1))
-)
-plt.imshow(eroded, cmap='gray')
-
-
-# In[150]:
-
-
-for img1 in mangueras.values():
-    selem = disk(5)
-    img_eq = rank.equalize(img1, selem=selem)
-    utils.side_by_side(img1, img_eq)
-    edges = canny(img_eq, sigma=3)
-    filled = ndi.binary_fill_holes(edges)
-    utils.side_by_side(img_eq, filled)
-    eroded = utils.closing(
-        utils.opening(np.float64(filled), np.ones((10, 10))), np.ones((5, 5))
-    )
-    utils.side_by_side(filled, eroded)
-
-
-# In[156]:
-
-
-for img1 in mangueras.values():
-    ref_region(img1, verbose=True)
+for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
+    plt.figure()
+    plt.imshow(np.uint8(imagen), cmap="gray")
+    plt.title(nombre)
 
 
 # In[110]:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[109]:
+# In[236]:
 
 
 # Type annotations :
@@ -24,7 +24,10 @@ from skimage.feature import canny
 from skimage.util.dtype import dtype_range
 from skimage.util import img_as_ubyte
 from skimage import exposure
-from skimage.morphology import disk
+from skimage.morphology import disk, skeletonize
+#from skimage.morphology import black_tophat, skeletonize, convex_hull_image
+#from skimage.morphology import disk
+
 from skimage.filters import rank
 from skimage.measure import label, regionprops
 
@@ -406,14 +409,16 @@ segmented_ref_reg = {
 }
 
 
-# In[226]:
+# In[237]:
 
 
+"""
 _tmp = mangueras[llaves[0]][90:210, 220:340]
 #_tmp *= np.uint8( auto_segment(_tmp) * 255 )
 plt.imshow(_tmp, cmap='gray')
 plt.figure()
 sns.distplot(_tmp.flatten())
+"""
 
 
 # In[215]:
@@ -426,14 +431,15 @@ sns.distplot(_tmp.flatten())
 #sns.distplot(mangueras[llaves[0]][_tmp.nonzero()].flatten())
 
 
-# In[227]:
+# In[238]:
 
 
+"""
 _tmp = segmented_ref_reg[llaves[0]] # [90:210, 220:340]
 plt.imshow(_tmp, cmap='gray')
 plt.figure()
-
 sns.distplot(_tmp[ _tmp != 0].flatten(), kde=False)
+"""
 
 
 # In[232]:
@@ -445,18 +451,36 @@ region_info = pd.core.frame.DataFrame({
 region_info.describe()
 
 
-# In[110]:
+# In[235]:
 
 
-label_image, n_objs = label(filled, return_num=True)
+# Relatively slow, avoid running :
+sns.pairplot(region_info)
 
 
-# In[112]:
+# In[242]:
 
 
-fig, ax = plt.subplots(figsize=(10, 10))
-ax.imshow(label_image)
-print(n_objs)
+preg4 = skeletonize(mangueras_segmentadas[llaves[0]])
+
+
+# In[243]:
+
+
+plt.imshow(preg4, cmap='gray')
+
+
+# In[245]:
+
+
+label_image, n_objs = label(preg4, return_num=True)
+plt.imshow(label_image)
+
+
+# In[246]:
+
+
+objs = regionprops(label_image) 
 
 
 # In[ ]:
@@ -465,33 +489,34 @@ print(n_objs)
 
 
 
-# In[34]:
+# In[ ]:
 
 
-mangueras_segmentadas[llaves[0]]
 
 
-# In[24]:
+
+# In[ ]:
 
 
-for i in reg_ref_segmentadas.keys():
-    mask = np.nonzero(reg_ref_segmentadas[i] > K)
-    reg_ref_segmentadas[i][mask] = 0
 
 
-# In[76]:
+
+# In[ ]:
 
 
-for nombre in reg_ref_segmentadas.keys():
-    plt.figure()
-    plt.imshow(reg_ref_segmentadas[nombre], cmap="gray")
-    plt.title(nombre)
 
 
-# In[79]:
+
+# In[ ]:
 
 
-sns.distplot(reg_ref_segmentadas['altoflujo.png'].flatten())
+
+
+
+# In[ ]:
+
+
+
 
 
 # In[80]:

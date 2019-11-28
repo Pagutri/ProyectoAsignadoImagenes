@@ -72,7 +72,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[59]:
+# In[155]:
 
 
 
@@ -141,6 +141,39 @@ def auto_segment(
         
     return dst
 ##
+
+def ref_region(
+    img: np.ndarray,
+    selem: Any = disk(5),
+    sigma: int = 3,
+    opening_se: np.ndarray = np.ones((10, 10)),
+    closing_se: np.ndarray = np.ones((5, 5)),
+    verbose: bool = False
+):
+    """
+    """
+    
+    # Perform histogram equalisation :
+    _img_eq = rank.equalize(img, selem=selem)
+    
+    # Perform edge detection :
+    _edges = canny(_img_eq, sigma=3)
+    _filled = ndi.binary_fill_holes(_edges)
+    
+    # Morphological processing :
+    _eroded = utils.closing(
+        utils.opening(np.float64(_filled), opening_se), closing_se
+    )
+    
+    if verbose:
+        utils.side_by_side(img1, img_eq, title1="Original", title2="Histogram Equalised")
+        #plt.title('Lol')
+        utils.side_by_side(img_eq, filled, title1="Histogram Equalised", title2="Canny Edge Detection + Filled image")
+        #plt.title('Lal')
+        utils.side_by_side(filled, eroded, title1="Canny Edge Detection + Filled image", title2="Opening, closing")
+        #plt.title('Lel')
+        
+    return eroded
 
 
 # In[6]:
@@ -385,6 +418,13 @@ for img1 in mangueras.values():
         utils.opening(np.float64(filled), np.ones((10, 10))), np.ones((5, 5))
     )
     utils.side_by_side(filled, eroded)
+
+
+# In[156]:
+
+
+for img1 in mangueras.values():
+    ref_region(img1, verbose=True)
 
 
 # In[110]:

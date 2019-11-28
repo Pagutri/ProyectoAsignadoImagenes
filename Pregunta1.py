@@ -398,6 +398,53 @@ for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
     plt.title(nombre)
 
 
+# In[169]:
+
+
+segmented_ref_reg = {
+    key: mangueras[key] * region_ref4[key] for key in llaves
+}
+
+
+# In[226]:
+
+
+_tmp = mangueras[llaves[0]][90:210, 220:340]
+#_tmp *= np.uint8( auto_segment(_tmp) * 255 )
+plt.imshow(_tmp, cmap='gray')
+plt.figure()
+sns.distplot(_tmp.flatten())
+
+
+# In[215]:
+
+
+#_tmp = mangueras[llaves[0]][90:210, 200:350]
+#_tmp = auto_segment(_tmp)
+#plt.imshow(_tmp, cmap='gray')
+#plt.figure()
+#sns.distplot(mangueras[llaves[0]][_tmp.nonzero()].flatten())
+
+
+# In[227]:
+
+
+_tmp = segmented_ref_reg[llaves[0]] # [90:210, 220:340]
+plt.imshow(_tmp, cmap='gray')
+plt.figure()
+
+sns.distplot(_tmp[ _tmp != 0].flatten(), kde=False)
+
+
+# In[229]:
+
+
+region_info = pd.core.frame.DataFrame({
+    key: value[ value != 0 ].flatten() for key, value in segmented_ref_reg.items() 
+})
+region_info.describe()
+
+
 # In[110]:
 
 

@@ -4,6 +4,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 #import matplotlib.image as img
+import skimage
 
 import numpy as np
 import cv2 as cv
@@ -188,7 +189,7 @@ def segplot(
         color = 'red'
         
     fig, ax = plt.subplots(figsize=(9, 9))
-    ax.imshow(imgb2c, cmap='gray')
+    ax.imshow(img, cmap='gray')
 
     for region in group:
         minr, minc, maxr, maxc = region.bbox

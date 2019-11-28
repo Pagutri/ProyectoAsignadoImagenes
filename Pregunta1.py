@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[236]:
+# In[1]:
 
 
 # Type annotations :
@@ -20,11 +20,14 @@ import multiprocessing as mp
 # Image processing :
 import cv2 as cv
 import skimage
-from skimage.feature import canny
+from skimage.feature import canny, peak_local_max
 from skimage.util.dtype import dtype_range
-from skimage.util import img_as_ubyte
+from skimage.util import img_as_ubyte, img_as_float
 from skimage import exposure
-from skimage.morphology import disk, skeletonize
+from skimage.morphology import disk, skeletonize, thin, medial_axis, watershed
+from skimage.filters import sobel
+from skimage.segmentation import felzenszwalb, slic, quickshift, watershed
+from skimage.segmentation import mark_boundaries
 #from skimage.morphology import black_tophat, skeletonize, convex_hull_image
 #from skimage.morphology import disk
 
@@ -38,6 +41,7 @@ from scipy import ndimage as ndi
 
 # Visualisation :
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import seaborn as sns
 
 # Machine-Learning :
@@ -75,7 +79,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[155]:
+# In[58]:
 
 
 
@@ -169,14 +173,14 @@ def ref_region(
     )
     
     if verbose:
-        utils.side_by_side(img1, img_eq, title1="Original", title2="Histogram Equalised")
+        utils.side_by_side(img, _img_eq, title1="Original", title2="Histogram Equalised")
         #plt.title('Lol')
-        utils.side_by_side(img_eq, filled, title1="Histogram Equalised", title2="Canny Edge Detection + Filled image")
+        utils.side_by_side(_img_eq, _filled, title1="Histogram Equalised", title2="Canny Edge Detection + Filled image")
         #plt.title('Lal')
-        utils.side_by_side(filled, eroded, title1="Canny Edge Detection + Filled image", title2="Opening, closing")
+        utils.side_by_side(_filled, _eroded, title1="Canny Edge Detection + Filled image", title2="Opening, closing")
         #plt.title('Lel')
         
-    return eroded
+    return _eroded
 
 
 # In[6]:
@@ -203,7 +207,7 @@ files
 llaves = lmap(lambda x: os.path.split(x)[-1], files)
 
 
-# In[9]:
+# In[83]:
 
 
 mangueras = {
@@ -238,7 +242,7 @@ for i in intensities:
 
 # Nótese lo similares que son las distribuciones de las intensidades, independientemente de la intensidad del flujo.
 
-# In[16]:
+# In[84]:
 
 
 mangueras_segmentadas = {
@@ -250,7 +254,7 @@ mangueras_segmentadas = {
 # 
 # Usamos la función que diseñamos : ```auto_segment()```
 
-# In[18]:
+# In[13]:
 
 
 for nombre in mangueras.keys():
@@ -262,7 +266,7 @@ for nombre in mangueras.keys():
 
 # Aquí podemos observar las imágenes con su respectiva máscara de segmentación.
 
-# In[35]:
+# In[14]:
 
 
 region_ref1 = {
@@ -270,7 +274,7 @@ region_ref1 = {
 }
 
 
-# In[36]:
+# In[15]:
 
 
 for nombre in mangueras.keys():
@@ -287,7 +291,7 @@ for nombre in mangueras.keys():
 # 
 # Tal vez quitando la región de la manguera (la de mayor intensidad) sea más fácil segmentar automáticamente la **región referencia**.
 
-# In[37]:
+# In[16]:
 
 
 sin_manguera = {
@@ -299,7 +303,7 @@ plt.imshow(sin_manguera[llaves[0]], cmap='gray')
 
 # Nótese que la imagen muestra en negro la región que antes mostraba la mayor intensidad.
 
-# In[38]:
+# In[17]:
 
 
 sin_manguera = {
@@ -308,7 +312,7 @@ sin_manguera = {
 }
 
 
-# In[65]:
+# In[18]:
 
 
 region_ref2 = {
@@ -316,7 +320,7 @@ region_ref2 = {
 }
 
 
-# In[66]:
+# In[19]:
 
 
 for nombre in sin_manguera.keys():
@@ -343,13 +347,13 @@ for nombre in sin_manguera.keys():
 # }
 # ```
 
-# In[44]:
+# In[20]:
 
 
 sns.distplot(sin_manguera[llaves[2]].flatten())
 
 
-# In[69]:
+# In[21]:
 
 
 region_ref3 = {
@@ -357,7 +361,7 @@ region_ref3 = {
 }
 
 
-# In[70]:
+# In[22]:
 
 
 for nombre in sin_manguera.keys():
@@ -367,14 +371,14 @@ for nombre in sin_manguera.keys():
     )
 
 
-# In[89]:
+# In[23]:
 
 
 edges = canny(mangueras[llaves[0]] /255.)
 fill_coins = ndi.binary_fill_holes(edges)
 
 
-# In[158]:
+# In[24]:
 
 
 verbose = False
@@ -384,7 +388,7 @@ if verbose:
         ref_region(img1, verbose=True)
 
 
-# In[164]:
+# In[60]:
 
 
 region_ref4 = {
@@ -392,7 +396,7 @@ region_ref4 = {
 }
 
 
-# In[167]:
+# In[61]:
 
 
 for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
@@ -401,7 +405,7 @@ for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
     plt.title(nombre)
 
 
-# In[169]:
+# In[62]:
 
 
 segmented_ref_reg = {
@@ -409,19 +413,25 @@ segmented_ref_reg = {
 }
 
 
-# In[237]:
+# In[86]:
 
 
-"""
-_tmp = mangueras[llaves[0]][90:210, 220:340]
+
+_tmp = copy.deepcopy(mangueras[llaves[0]][80:220, 210:350])
+#_tmp[ _tmp < 85] = 0
 #_tmp *= np.uint8( auto_segment(_tmp) * 255 )
 plt.imshow(_tmp, cmap='gray')
 plt.figure()
-sns.distplot(_tmp.flatten())
-"""
+sns.distplot(_tmp.flatten()[_tmp.flatten().nonzero()])
 
 
-# In[215]:
+# In[87]:
+
+
+plt.imshow(mangueras[llaves[0]])
+
+
+# In[31]:
 
 
 #_tmp = mangueras[llaves[0]][90:210, 200:350]
@@ -431,80 +441,237 @@ sns.distplot(_tmp.flatten())
 #sns.distplot(mangueras[llaves[0]][_tmp.nonzero()].flatten())
 
 
-# In[238]:
+# In[89]:
 
 
-"""
-_tmp = segmented_ref_reg[llaves[0]] # [90:210, 220:340]
+_tmp = copy.deepcopy(segmented_ref_reg[llaves[0]][80:220, 210:350])
 plt.imshow(_tmp, cmap='gray')
 plt.figure()
 sns.distplot(_tmp[ _tmp != 0].flatten(), kde=False)
+
+
+# In[71]:
+
+
+# Esto servía, pero ya no :
 """
-
-
-# In[232]:
-
-
 region_info = pd.core.frame.DataFrame({
     f"{key.replace('.png', '')} ": value[ value != 0 ].flatten() for key, value in segmented_ref_reg.items() 
 })
 region_info.describe()
+"""
 
 
-# In[235]:
+# In[75]:
+
+
+region_info_list = list(map(
+    lambda x, y: pd.core.series.Series(x[ x != 0].flatten(), name=y), segmented_ref_reg.values(), segmented_ref_reg.keys()
+))
+region_info = pd.concat(region_info_list, axis=1)
+
+
+# In[77]:
+
+
+region_info.describe()
+
+
+# In[76]:
 
 
 # Relatively slow, avoid running :
 sns.pairplot(region_info)
 
 
-# In[242]:
+# In[34]:
 
 
 preg4 = skeletonize(mangueras_segmentadas[llaves[0]])
 
 
-# In[243]:
+# In[56]:
 
 
 plt.imshow(preg4, cmap='gray')
 
 
-# In[245]:
+# In[36]:
 
 
-label_image, n_objs = label(preg4, return_num=True)
+label_image, n_objs = label(preg4, connectivity=1, return_num=True)
 plt.imshow(label_image)
+print(n_objs)
 
 
-# In[246]:
+# In[37]:
+
+
+#help(label)
+
+
+# In[38]:
 
 
 objs = regionprops(label_image) 
 
 
-# In[ ]:
+# In[39]:
 
 
+def segplot(
+    img: np.ndarray, 
+    group: skimage.measure._regionprops.RegionProperties, 
+    color: Optional[str] = None,
+    title: Optional[str] = None
+) -> NoReturn:
+    """
+    """
+    if not color:
+        color = 'red'
+        
+    fig, ax = plt.subplots(figsize=(9, 9))
+    ax.imshow(img, cmap='gray')
+
+    try:
+        iter(group)
+        for region in group:
+            minr, minc, maxr, maxc = region.bbox
+            rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                      fill=False, edgecolor=color, linewidth=2)
+            ax.add_patch(rect)
+    except:
+        minr, minc, maxr, maxc = group.bbox
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                 fill=False, edgecolor=color, linewidth=2)
+        ax.add_patch(rect)
+        
+    
+    if title:
+        plt.title(title)
+    plt.tight_layout()
+    plt.show()
+##
+
+def watershed_viz(image, distance, labels):
+    """
+        Constructed from the example found in :
+        https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_watershed.html
+    """
+    fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
+    ax = axes.ravel()
+
+    ax[0].imshow(image, cmap=plt.cm.gray)
+    ax[0].set_title('Overlapping objects')
+    ax[1].imshow(-distance, cmap=plt.cm.gray)
+    ax[1].set_title('Distances')
+    ax[2].imshow(labels, cmap=plt.cm.nipy_spectral)
+    ax[2].set_title('Separated objects')
+
+    for a in ax:
+        a.set_axis_off()
+
+    fig.tight_layout()
+    plt.show()
+##
+
+def ez_watershed(
+    image: np.ndarray, 
+    markers: Optional[int] = None, 
+    footprint: Optional[np.array] = None, 
+    **kw
+) -> Tuple[int, int, int]:
+    """
+    """
+    distance = ndi.distance_transform_edt(image)
+    if footprint is not None:
+        fp = footprint
+    else:
+        fp = np.ones((10, 10))
+    
+    if markers is None:
+        local_maxi = peak_local_max(
+            distance, 
+            indices=False, 
+            footprint=np.ones((10, 10)),
+            labels=image,
+            **kw
+        )
+        markers = ndi.label(local_maxi)[0]
+
+    labels  = watershed(-distance, markers, mask=image)
+    
+    return markers, distance, labels
+##
 
 
-
-# In[ ]:
-
+# In[40]:
 
 
+segplot(mangueras[llaves[0]], objs, color='green')
 
 
-# In[ ]:
+# In[41]:
 
 
+def try_iter(foo):
+    try:
+        iter(foo)
+    except:
+        print('No iterable amigou')
 
 
-
-# In[ ]:
-
+# In[42]:
 
 
+plt.imshow(cv.erode(mangueras[llaves[0]], np.ones((1, 1))), cmap='gray')
+
+
+# In[48]:
+
+
+#_se = np.ones((10,10))
+#_se = disk(1)
+#thin(cv.erode(manguera, _se))
+mangueras_adelgazadas = {
+    nombre: skeletonize(manguera) for nombre, manguera in mangueras_segmentadas.items()
+}
+
+
+# In[54]:
+
+
+for manguera, esqueleto in zip(mangueras_segmentadas.values(), mangueras_adelgazadas.values()):
+    plt.figure()
+    utils.side_by_side(manguera, esqueleto, cmap='gray')
+    #mfs.img_surf(manguera)
+
+
+# for manguera in mangueras_segmentadas.values():
+#     markers, distance, labels = ez_watershed(manguera, markers=3)
+#     print(markers)
+#     watershed_viz(manguera, distance, labels)
+
+# In[45]:
+
+
+for manguera in mangueras_segmentadas.values():
+    #segments_slic = slic(manguera, n_segments=4, compactness=10, sigma=1)
+    segments_watershed = watershed(sobel(manguera), markers=10, compactness=0.001)
+    plt.figure()
+    plt.imshow(mark_boundaries(manguera, segments_watershed))
+
+
+# In[46]:
+
+
+help(watershed)
+
+
+# In[47]:
+
+
+help(medial_axis)
 
 
 # In[ ]:

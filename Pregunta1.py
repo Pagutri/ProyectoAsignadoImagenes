@@ -436,11 +436,11 @@ plt.figure()
 sns.distplot(_tmp[ _tmp != 0].flatten(), kde=False)
 
 
-# In[229]:
+# In[232]:
 
 
 region_info = pd.core.frame.DataFrame({
-    key: value[ value != 0 ].flatten() for key, value in segmented_ref_reg.items() 
+    f"{key.replace('.png', '')} ": value[ value != 0 ].flatten() for key, value in segmented_ref_reg.items() 
 })
 region_info.describe()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[120]:
 
 
 # Type annotations :
@@ -24,10 +24,11 @@ from skimage.feature import canny, peak_local_max
 from skimage.util.dtype import dtype_range
 from skimage.util import img_as_ubyte, img_as_float
 from skimage import exposure
-from skimage.morphology import disk, skeletonize, thin, medial_axis, watershed
+from skimage.morphology import disk, skeletonize, thin, medial_axis, watershed, max_tree
 from skimage.filters import sobel
 from skimage.segmentation import felzenszwalb, slic, quickshift, watershed
 from skimage.segmentation import mark_boundaries
+import skimage.measure as measure
 #from skimage.morphology import black_tophat, skeletonize, convex_hull_image
 #from skimage.morphology import disk
 
@@ -64,12 +65,14 @@ importlib.reload(utils)
 import utils
 
 
-# In[3]:
+# In[91]:
 
 
 lmap = lambda x, y: list(map(x, y))
 lfilter = lambda x, y: list(filter(x, y))
 imread = lambda x: cv.imread(x, 0)
+pad_obj = lambda x: cv.copyMakeBorder(np.float64(x.image), 10, 10, 10, 10, cv.BORDER_CONSTANT)
+pad = lambda x: cv.copyMakeBorder(np.float64(x), 10, 10, 10, 10, cv.BORDER_CONSTANT)
 
 
 # In[4]:
@@ -79,7 +82,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[58]:
+# In[5]:
 
 
 
@@ -207,7 +210,7 @@ files
 llaves = lmap(lambda x: os.path.split(x)[-1], files)
 
 
-# In[83]:
+# In[9]:
 
 
 mangueras = {
@@ -242,11 +245,11 @@ for i in intensities:
 
 # Nótese lo similares que son las distribuciones de las intensidades, independientemente de la intensidad del flujo.
 
-# In[84]:
+# In[116]:
 
 
 mangueras_segmentadas = {
-    key: auto_segment(mangueras[key]) for key in mangueras.keys()
+    key: auto_segment(mangueras[key], verbose=False, groups=2) for key in mangueras.keys()
 }
 
 
@@ -254,7 +257,7 @@ mangueras_segmentadas = {
 # 
 # Usamos la función que diseñamos : ```auto_segment()```
 
-# In[13]:
+# In[117]:
 
 
 for nombre in mangueras.keys():
@@ -266,7 +269,7 @@ for nombre in mangueras.keys():
 
 # Aquí podemos observar las imágenes con su respectiva máscara de segmentación.
 
-# In[14]:
+# In[17]:
 
 
 region_ref1 = {
@@ -274,7 +277,7 @@ region_ref1 = {
 }
 
 
-# In[15]:
+# In[18]:
 
 
 for nombre in mangueras.keys():
@@ -291,7 +294,7 @@ for nombre in mangueras.keys():
 # 
 # Tal vez quitando la región de la manguera (la de mayor intensidad) sea más fácil segmentar automáticamente la **región referencia**.
 
-# In[16]:
+# In[19]:
 
 
 sin_manguera = {
@@ -303,7 +306,7 @@ plt.imshow(sin_manguera[llaves[0]], cmap='gray')
 
 # Nótese que la imagen muestra en negro la región que antes mostraba la mayor intensidad.
 
-# In[17]:
+# In[20]:
 
 
 sin_manguera = {
@@ -312,7 +315,7 @@ sin_manguera = {
 }
 
 
-# In[18]:
+# In[21]:
 
 
 region_ref2 = {
@@ -320,7 +323,7 @@ region_ref2 = {
 }
 
 
-# In[19]:
+# In[22]:
 
 
 for nombre in sin_manguera.keys():
@@ -347,13 +350,13 @@ for nombre in sin_manguera.keys():
 # }
 # ```
 
-# In[20]:
+# In[23]:
 
 
 sns.distplot(sin_manguera[llaves[2]].flatten())
 
 
-# In[21]:
+# In[24]:
 
 
 region_ref3 = {
@@ -361,7 +364,7 @@ region_ref3 = {
 }
 
 
-# In[22]:
+# In[25]:
 
 
 for nombre in sin_manguera.keys():
@@ -371,14 +374,14 @@ for nombre in sin_manguera.keys():
     )
 
 
-# In[23]:
+# In[26]:
 
 
 edges = canny(mangueras[llaves[0]] /255.)
 fill_coins = ndi.binary_fill_holes(edges)
 
 
-# In[24]:
+# In[27]:
 
 
 verbose = False
@@ -388,7 +391,7 @@ if verbose:
         ref_region(img1, verbose=True)
 
 
-# In[60]:
+# In[28]:
 
 
 region_ref4 = {
@@ -396,7 +399,7 @@ region_ref4 = {
 }
 
 
-# In[61]:
+# In[29]:
 
 
 for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
@@ -405,7 +408,7 @@ for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
     plt.title(nombre)
 
 
-# In[62]:
+# In[30]:
 
 
 segmented_ref_reg = {
@@ -413,7 +416,7 @@ segmented_ref_reg = {
 }
 
 
-# In[86]:
+# In[31]:
 
 
 
@@ -425,13 +428,13 @@ plt.figure()
 sns.distplot(_tmp.flatten()[_tmp.flatten().nonzero()])
 
 
-# In[87]:
+# In[32]:
 
 
 plt.imshow(mangueras[llaves[0]])
 
 
-# In[31]:
+# In[33]:
 
 
 #_tmp = mangueras[llaves[0]][90:210, 200:350]
@@ -441,7 +444,7 @@ plt.imshow(mangueras[llaves[0]])
 #sns.distplot(mangueras[llaves[0]][_tmp.nonzero()].flatten())
 
 
-# In[89]:
+# In[34]:
 
 
 _tmp = copy.deepcopy(segmented_ref_reg[llaves[0]][80:220, 210:350])
@@ -450,7 +453,7 @@ plt.figure()
 sns.distplot(_tmp[ _tmp != 0].flatten(), kde=False)
 
 
-# In[71]:
+# In[35]:
 
 
 # Esto servía, pero ya no :
@@ -462,7 +465,7 @@ region_info.describe()
 """
 
 
-# In[75]:
+# In[36]:
 
 
 region_info_list = list(map(
@@ -471,52 +474,177 @@ region_info_list = list(map(
 region_info = pd.concat(region_info_list, axis=1)
 
 
-# In[77]:
+# In[37]:
 
 
 region_info.describe()
 
 
-# In[76]:
+# In[39]:
 
 
 # Relatively slow, avoid running :
-sns.pairplot(region_info)
+sns.pairplot(region_info.dropna())
 
 
-# In[34]:
+# In[40]:
 
 
 preg4 = skeletonize(mangueras_segmentadas[llaves[0]])
 
 
-# In[56]:
+# In[41]:
 
 
 plt.imshow(preg4, cmap='gray')
 
 
-# In[36]:
+# In[155]:
 
 
-label_image, n_objs = label(preg4, connectivity=1, return_num=True)
+label_image, n_objs = label(preg4, return_num=True) #connectivity=1,
 plt.imshow(label_image)
 print(n_objs)
 
 
-# In[37]:
+# In[72]:
 
 
 #help(label)
 
 
-# In[38]:
+# In[92]:
+
+
+objs = regionprops(label_image)
+
+
+# In[93]:
 
 
 objs = regionprops(label_image) 
+for obj in objs:
+    print(obj.area)
 
 
-# In[39]:
+# In[156]:
+
+
+_largest = reduce(lambda x, y: x if x.area > y.area else y, objs)
+
+
+# In[157]:
+
+
+plt.imshow(_largest.image)
+
+
+# In[140]:
+
+
+el_obj = objs[1] 
+plt.imshow(pad_obj(el_obj))
+#plt.imshow( mangueras_adelgazadas[ objs[1].image.nonzero()[0].flatten() ] )
+
+
+# In[141]:
+
+
+len(max_tree(pad(el_obj.image))[1])
+
+
+# In[104]:
+
+
+mangueras[llaves[0]].shape
+480*640
+
+
+# In[144]:
+
+
+el_obj_pad = pad(el_obj.image)
+
+
+# In[145]:
+
+
+help(el_obj)
+
+
+# In[171]:
+
+
+_hola = np.zeros_like(preg4)
+for coord in el_obj.coords:
+    i, j = coord
+    #print(mangueras_segmentadas[llaves[0]][(i, j)])
+    _hola[(i, j)] = 1
+plt.imshow(_hola)
+
+
+# In[172]:
+
+
+def max_skeleton(img: np.ndarray):
+    """
+    """
+    
+    # Find the sekeleton of the image :
+    _skeleton = skeletonize(img)
+    # Label each region of the skeleton :
+    _label_image = label(_skeleton, return_num=False)
+    # Get the properties of each label :
+    _objs = regionprops(_label_image)
+    # Keep only the skeleton which has the most pixels :
+    _largest = reduce(lambda x, y: x if x.area > y.area else y, _objs)
+    
+    _largest_on_image = np.zeros_like(img, dtype=img.dtype)
+    for _coord in _largest.coords:
+        i, j = _coord
+        _largest_on_image[(i, j)] = 1
+    
+    return _largest_on_image
+    
+
+
+# In[175]:
+
+
+plt.imshow(max_skeleton(mangueras_segmentadas[llaves[0]]))
+
+
+# In[111]:
+
+
+las_dimensiones = variable1.shape
+
+
+# In[164]:
+
+
+x = mangueras[llaves[0]].dtype
+
+
+# In[165]:
+
+
+x(5.4)
+
+
+# In[112]:
+
+
+no_me_importa, si_me_importa = max_tree(variable1)
+
+
+# In[114]:
+
+
+plt.imshow(variable1.flatten()[si_me_importa].reshape(las_dimensiones))
+
+
+# In[45]:
 
 
 def segplot(
@@ -605,13 +733,13 @@ def ez_watershed(
 ##
 
 
-# In[40]:
+# In[74]:
 
 
 segplot(mangueras[llaves[0]], objs, color='green')
 
 
-# In[41]:
+# In[47]:
 
 
 def try_iter(foo):
@@ -621,13 +749,13 @@ def try_iter(foo):
         print('No iterable amigou')
 
 
-# In[42]:
+# In[48]:
 
 
 plt.imshow(cv.erode(mangueras[llaves[0]], np.ones((1, 1))), cmap='gray')
 
 
-# In[48]:
+# In[66]:
 
 
 #_se = np.ones((10,10))
@@ -638,7 +766,13 @@ mangueras_adelgazadas = {
 }
 
 
-# In[54]:
+# In[ ]:
+
+
+
+
+
+# In[58]:
 
 
 for manguera, esqueleto in zip(mangueras_segmentadas.values(), mangueras_adelgazadas.values()):

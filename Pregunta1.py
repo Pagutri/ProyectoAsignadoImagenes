@@ -53,7 +53,7 @@ from functools import partial, reduce
 from itertools import chain
 
 
-# In[2]:
+# In[228]:
 
 
 import mfilt_funcs as mfs
@@ -64,15 +64,20 @@ import utils
 importlib.reload(utils)
 import utils
 
+import forutils
+importlib.reload(forutils)
+from forutils import find_branch_points
 
-# In[91]:
+
+# In[263]:
 
 
 lmap = lambda x, y: list(map(x, y))
 lfilter = lambda x, y: list(filter(x, y))
 imread = lambda x: cv.imread(x, 0)
 pad_obj = lambda x: cv.copyMakeBorder(np.float64(x.image), 10, 10, 10, 10, cv.BORDER_CONSTANT)
-pad = lambda x: cv.copyMakeBorder(np.float64(x), 10, 10, 10, 10, cv.BORDER_CONSTANT)
+pad  = lambda x: cv.copyMakeBorder(np.float64(x), 10, 10, 10, 10, cv.BORDER_CONSTANT)
+pad1 = lambda x: cv.copyMakeBorder(np.float64(x), 1, 1, 1, 1, cv.BORDER_CONSTANT)
 
 
 # In[4]:
@@ -572,18 +577,26 @@ el_obj_pad = pad(el_obj.image)
 help(el_obj)
 
 
-# In[171]:
+# In[245]:
 
 
 _hola = np.zeros_like(preg4)
 for coord in el_obj.coords:
+    print(coord)
     i, j = coord
     #print(mangueras_segmentadas[llaves[0]][(i, j)])
     _hola[(i, j)] = 1
+#plt.imshow(_hola[200:300, 550:650])
 plt.imshow(_hola)
 
 
-# In[172]:
+# In[232]:
+
+
+find_branch_points(_hola).sum()
+
+
+# In[235]:
 
 
 def max_skeleton(img: np.ndarray):
@@ -604,8 +617,137 @@ def max_skeleton(img: np.ndarray):
         i, j = _coord
         _largest_on_image[(i, j)] = 1
     
+    # Call the pruning function
+    
     return _largest_on_image
     
+
+
+# In[267]:
+
+
+def get_neighbours(p, exclude_p=True, shape=None):
+    """
+        Snippet taken from :
+        https://stackoverflow.com/questions/34905274/how-to-find-the-neighbors-of-a-cell-in-an-ndarray
+        
+        Little example :
+        p = np.r_[4, 5]
+        shape = (6, 6)
+
+        neighbours = get_neighbours(p, shape=shape)
+
+        x = np.zeros(shape, int)
+        x[tuple(neighbours.T)] = 1
+        x[tuple(p)] = 2
+
+        print(x)
+        # [[0 0 0 0 0 0]
+        #  [0 0 0 0 0 0]
+        #  [0 0 0 0 0 0]
+        #  [0 0 0 0 1 1]
+        #  [0 0 0 0 1 2]
+        #  [0 0 0 0 1 1]]
+    """
+    ndim = len(p)
+
+    # generate an (m, ndims) array containing all strings over the alphabet {0, 1, 2}:
+    offset_idx = np.indices((3,) * ndim).reshape(ndim, -1).T
+
+    # use these to index into np.array([-1, 0, 1]) to get offsets
+    offsets = np.r_[-1, 0, 1].take(offset_idx)
+
+    # optional: exclude offsets of 0, 0, ..., 0 (i.e. p itself)
+    if exclude_p:
+        offsets = offsets[np.any(offsets, 1)]
+
+    neighbours = p + offsets    # apply offsets to p
+
+    # optional: exclude out-of-bounds indices
+    if shape is not None:
+        valid = np.all((neighbours < np.array(shape)) & (neighbours >= 0), axis=1)
+        neighbours = neighbours[valid]
+
+    return neighbours
+
+
+# In[274]:
+
+
+for nei in get_neighbours(el_obj.coords[0], shape=preg4.shape):
+    i, j = nei
+    print(nei, preg4[(i,j)])
+
+
+# In[248]:
+
+
+def thinning(img: np.ndarray, se: np.ndarray) -> np.ndarray:
+    """
+    """
+    
+    return  np.bitwise_xor(img, ndi.binary_hit_or_miss(img, se))
+
+
+def prune(img: np.ndarray, n: int = 1):
+    """
+    """
+    
+     # Construct all of the structuring elements needed from clockwise rotations.
+    clockwise_rotations = lambda y: [y] + list(map(lambda x: np.rot90(y, x), reversed(range(1, 3+1))))
+    _b1 = np.array([[0, 0, 0],[1, 1, 0],[0, 0, 0]], dtype=img.dtype)
+    _b2 = np.array([[1, 0, 0],[0, 1, 0],[0, 0, 0]], dtype=img.dtype)
+    B = reduce(
+        lambda x, y: x + y, 
+        lmap(clockwise_rotations, [_b1, _b2])
+    )
+    H = np.ones((3, 3))
+    
+    # Thinning, by all of the structuring elements :
+    
+    X1 = reduce(thinning, n*B, img)
+    #while n > 1:
+    #    X1 = reduce(thinning, B, X1)
+    
+    return X1
+    
+    # Hit or miss stage :
+    #X2 = reduce(ndi.binary_hit_or_miss, B, X1)
+
+    #return X2
+    
+    # Dilation stage : 
+    #X3 = cv.dilate(X2, H)
+    # Hit-or-miss
+    #ndi.binary_hit_or_miss
+    
+    
+##
+
+
+# In[253]:
+
+
+pruned = prune(_hola, n=15)
+pruned.nonzero()
+
+
+# In[264]:
+
+
+neighbours = lambda image, pos: pad1( image[max(0, pos[0]-1):min(pos[0]+1, image.shape[0]), max(0, pos[1]-1):min(pos[1]+1, image.shape[1])]  )
+
+
+# In[265]:
+
+
+neighbours(np.array([[0, 1, 0],[0, 1, 0],[1, 0, 1]]), (1, 2))
+
+
+# In[260]:
+
+
+plt.imshow(pruned[250:270, 590:610])
 
 
 # In[175]:

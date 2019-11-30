@@ -630,29 +630,21 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[543]:
+# In[547]:
 
 
-def max_skeleton(img: np.ndarray, verbose: bool = False, method: Optional[str] = None):
+def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False):
     """
     """
     
-    # Find the sekeleton of the image :
-    # TMP CHANGES : 
-    #_skeleton = skeletonize(img, method=method)
-    # Label each region of the skeleton :
-    # TMP CHANGES :
+    
     _skeleton = canny(img)
     _label_image = label(_skeleton, return_num=False)
     # Get the properties of each label :
     _objs = regionprops(_label_image)
-    # Keep only the skeleton which has the most pixels :
+    
     _largest  = reduce(lambda x, y: x if x.area > y.area else y, _objs)
     _smallest = reduce(lambda x, y: x if x.area < y.area else y, _objs)
-    
-    #_N, _n = lmap(len, [_largest.coords, _smallest.coords])
-    #print(np.array_split(_largest.coords, 3)[0])
-    #print(_chunks[0])
     
     _long  = np.array(sorted(_largest.coords,  key=itemgetter(1)))
     _short = np.array(sorted(_smallest.coords, key=itemgetter(1)))
@@ -702,10 +694,10 @@ _masked[cc, dd] = 1
 plt.imshow(_masked)
 
 
-# In[545]:
+# In[548]:
 
 
-plt.imshow(max_skeleton(mangueras_segmentadas_amano[llaves[3]]))
+plt.imshow(subdivide_hose(mangueras_segmentadas_amano[llaves[3]]))
 
 
 # In[396]:

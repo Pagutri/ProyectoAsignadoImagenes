@@ -630,7 +630,7 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[550]:
+# In[560]:
 
 
 def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[np.ndarray]:
@@ -654,7 +654,7 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[n
     # Create n subdivision masks : 
     _masked = [np.zeros_like(img, dtype=img.dtype) for i in range(n)]
     
-    for i in len(_masked):
+    for i in range(len(_masked)):
         for _coord in _big_chunks[i]:
             _masked[i][tuple(_coord)] = 1
         for _coord in _small_chunks[i]:
@@ -664,34 +664,30 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[n
         _masked[rr1, cc1] = 1
         _masked[rr2, cc2] = 1
     
-    split_nodes: list = []
-    
-    for point in _largest.coords:
-        _neighbours = 0
-        for nei in get_neighbours(point, shape=preg4.shape):
-            _neighbours += preg4[tuple(nei)]
-        if _neighbours == 3:
-            split_nodes.append(point)
-    
-    for node in split_nodes:
-        _largest_on_image[tuple(node)] = 0
-    
-    # Call the pruning function
-    
-    return ndi.binary_fill_holes(_masked)
+    return [ ndi.binary_fill_holes(_mask) for _mask in _masked ]
     
 
 
 # In[ ]:
 
 
+split_nodes: list = []
+
+for point in _largest.coords:
+    _neighbours = 0
+    for nei in get_neighbours(point, shape=preg4.shape):
+        _neighbours += preg4[tuple(nei)]
+    if _neighbours == 3:
+        split_nodes.append(point)
+
+for node in split_nodes:
+    _largest_on_image[tuple(node)] = 0
 
 
+# In[561]:
 
-# In[551]:
 
-
-plt.imshow(subdivide_hose(mangueras_segmentadas_amano[llaves[3]]))
+plt.imshow(subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 4)[1])
 
 
 # In[396]:

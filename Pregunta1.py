@@ -671,12 +671,30 @@ def get_neighbours(p, exclude_p=True, shape=None):
     return neighbours
 
 
-# In[274]:
+# In[284]:
 
 
-for nei in get_neighbours(el_obj.coords[0], shape=preg4.shape):
-    i, j = nei
-    print(nei, preg4[(i,j)])
+split_nodes: list = []
+    
+for point in el_obj.coords:
+    _neighbours = 0
+    for nei in get_neighbours(point, shape=preg4.shape):
+        i, j = nei
+        _neighbours += preg4[(i,j)]
+    if _neighbours > 2:
+        split_nodes.append(point)
+
+print(split_nodes)
+
+
+# In[292]:
+
+
+for point in split_nodes:
+    print(point)
+    for nei in get_neighbours(point, shape=preg4.shape):
+        print('\t', nei, preg4[tuple(nei)])
+    print('\n')
 
 
 # In[248]:
@@ -747,7 +765,7 @@ neighbours(np.array([[0, 1, 0],[0, 1, 0],[1, 0, 1]]), (1, 2))
 # In[260]:
 
 
-plt.imshow(pruned[250:270, 590:610])
+plt.imshow(pruned[:270, 590:610])
 
 
 # In[175]:

@@ -677,55 +677,61 @@ def subdivide_hose(
 ##    
 
 
-# In[126]:
+# In[141]:
 
 
 y = mangueras_segmentadas_amano[llaves[0]]
-yy = subdivide_hose(y, 6, contiguous=False)
+yy = subdivide_hose(y, 6, contiguous=False, disksize=13)
 _agregated = reduce(cv.bitwise_xor, yy)
 plt.imshow(_agregated)
 #for sub in yy:
     #utils.side_by_side(y, sub)
 
 
-# In[127]:
+# In[137]:
 
 
-# label image regions
-label_image = label(_agregated)
-image_label_overlay = label2rgb(label_image, image=_agregated)
-font = cv.FONT_HERSHEY_SIMPLEX 
-color = (255, 0, 0)
-letrero = 1
-thickness = 1
 
-fig, ax = plt.subplots(figsize=(10, 6))
-#ax.imshow(image_label_overlay)
+def label_image_regions(img: np.ndarray) -> NoReturn:
+    """
+    """
+    # label image regions
+    label_image = label(_agregated)
+    image_label_overlay = label2rgb(label_image, image=_agregated)
+    font = cv.FONT_HERSHEY_SIMPLEX 
+    color = (255, 0, 0)
+    letrero = 1
+    thickness = 1
 
-for region in regionprops(label_image):
-    # draw rectangle around segmented labels
-    minr, minc, maxr, maxc = region.bbox
-    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+    fig, ax = plt.subplots(figsize=(10, 6))
+    #ax.imshow(image_label_overlay)
+
+    for region in regionprops(label_image):
+        # draw rectangle around segmented labels
+        minr, minc, maxr, maxc = region.bbox
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
                             fill=False, edgecolor='red', linewidth=2)
-    ax.add_patch(rect)
-    y0, x0 = region.centroid
-    y0 = int(y0)
-    x0 = int(x0)
-    org = (x0, y0)
-    image_label_overlay = cv.putText(image_label_overlay, str(letrero), org, font, 1, color, thickness, cv.LINE_AA)
-    letrero += 1
-    #cv.putText(ori,'Life2Coding',(30,256), font, 2.5,(255,255,255),2,cv2.LINE_AA)
+        ax.add_patch(rect)
+        y0, x0 = region.centroid
+        y0 = int(y0)
+        x0 = int(x0)
+        org = (x0, y0)
+        image_label_overlay = cv.putText(image_label_overlay, str(letrero), org, font, 1, color, thickness, cv.LINE_AA)
+        letrero += 1
     
-ax.imshow(image_label_overlay)
-ax.set_axis_off()
-plt.tight_layout()
-plt.show()
+    ax.imshow(image_label_overlay)
+    ax.set_axis_off()
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+##
 
 
-# In[108]:
+# In[138]:
 
 
-help(mpatches)
+#help(mpatches)
+label_image_regions(_agregated)
 
 
 # In[74]:

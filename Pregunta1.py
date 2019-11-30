@@ -509,104 +509,6 @@ region_info.describe()
 sns.pairplot(region_info.dropna())
 
 
-# In[35]:
-
-
-preg4 = skeletonize(mangueras_segmentadas[llaves[0]])
-
-
-# In[36]:
-
-
-plt.imshow(preg4, cmap='gray')
-
-
-# In[37]:
-
-
-label_image, n_objs = label(preg4, return_num=True) #connectivity=1,
-plt.imshow(label_image)
-print(n_objs)
-
-
-# In[38]:
-
-
-#help(label)
-
-
-# In[39]:
-
-
-objs = regionprops(label_image)
-
-
-# In[40]:
-
-
-objs = regionprops(label_image) 
-for obj in objs:
-    print(obj.area)
-
-
-# In[41]:
-
-
-_largest = reduce(lambda x, y: x if x.area > y.area else y, objs)
-
-
-# In[42]:
-
-
-plt.imshow(_largest.image)
-
-
-# In[43]:
-
-
-el_obj = objs[1] 
-plt.imshow(pad_obj(el_obj))
-#plt.imshow( mangueras_adelgazadas[ objs[1].image.nonzero()[0].flatten() ] )
-
-
-# In[44]:
-
-
-len(max_tree(pad(el_obj.image))[1])
-
-
-# In[45]:
-
-
-mangueras[llaves[0]].shape
-480*640
-
-
-# In[46]:
-
-
-el_obj_pad = pad(el_obj.image)
-
-
-# In[47]:
-
-
-#help(el_obj)
-
-
-# In[48]:
-
-
-_hola = np.zeros_like(preg4)
-for coord in el_obj.coords:
-    print(coord)
-    i, j = coord
-    #print(mangueras_segmentadas[llaves[0]][(i, j)])
-    _hola[(i, j)] = 1
-#plt.imshow(_hola[200:300, 550:650])
-plt.imshow(_hola)
-
-
 # In[49]:
 
 
@@ -617,13 +519,7 @@ la_buena = reduce(cv.bitwise_xor, lmap(np.uint8, [sk, skl, ma, th]))
 utils.side_by_side(_tmp, la_buena)
 
 
-# In[402]:
-
-
-plt.imshow(canny(_tmp)[100:300, 500:])
-
-
-# In[50]:
+# In[142]:
 
 
 mangueras_segmentadas_amano = {
@@ -631,7 +527,7 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[96]:
+# In[143]:
 
 
 def subdivide_hose(
@@ -677,7 +573,7 @@ def subdivide_hose(
 ##    
 
 
-# In[141]:
+# In[144]:
 
 
 y = mangueras_segmentadas_amano[llaves[0]]
@@ -688,8 +584,7 @@ plt.imshow(_agregated)
     #utils.side_by_side(y, sub)
 
 
-# In[137]:
-
+# In[145]:
 
 
 def label_image_regions(img: np.ndarray) -> NoReturn:
@@ -727,31 +622,11 @@ def label_image_regions(img: np.ndarray) -> NoReturn:
 ##
 
 
-# In[138]:
+# In[146]:
 
 
 #help(mpatches)
 label_image_regions(_agregated)
-
-
-# In[74]:
-
-
-yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 10)
-#rr, cc = draw.line(*[1, 15], *[22, 32])
-#yy[0][rr, cc] = 1
-for y in yy:
-    plt.figure()
-    utils.side_by_side(mangueras_segmentadas_amano)
-    #plt.imshow( cv.bitwise_and(np.uint8(mangueras_segmentadas_amano[llaves[3]]), np.uint8(morphology.dilation(y, disk(20)))))
-
-
-# In[62]:
-
-
-for llave in llaves:
-    plt.figure()
-    plt.imshow(morphology.dilation(canny(mangueras_segmentadas_amano[llave]), disk(7.5)))
 
 
 # In[267]:
@@ -802,12 +677,6 @@ def get_neighbours(p, exclude_p=True, shape=None):
     return neighbours
 
 
-# In[298]:
-
-
-del split_nodes
-
-
 # In[305]:
 
 
@@ -849,12 +718,6 @@ for point in split_nodes:
     for nei in _neighbours:
         print('\t', nei, preg4[tuple(nei)])
     print('\n')
-
-
-# In[313]:
-
-
-check_if_on(np.array([255, 595]))
 
 
 # In[340]:
@@ -904,59 +767,10 @@ def prune(img: np.ndarray, n: int = 1):
 ##
 
 
-# In[341]:
-
-
-pruned = prune(_hola, n=5)
-pruned.nonzero()
-
-
 # In[342]:
 
 
 neighbours = lambda image, pos: pad1( image[max(0, pos[0]-1):min(pos[0]+1, image.shape[0]), max(0, pos[1]-1):min(pos[1]+1, image.shape[1])]  )
-
-
-# In[343]:
-
-
-neighbours(np.array([[0, 1, 0],[0, 1, 0],[1, 0, 1]]), (1, 2))
-
-
-# In[344]:
-
-
-plt.imshow(pruned)
-
-
-# In[111]:
-
-
-las_dimensiones = variable1.shape
-
-
-# In[164]:
-
-
-x = mangueras[llaves[0]].dtype
-
-
-# In[165]:
-
-
-x(5.4)
-
-
-# In[112]:
-
-
-no_me_importa, si_me_importa = max_tree(variable1)
-
-
-# In[114]:
-
-
-plt.imshow(variable1.flatten()[si_me_importa].reshape(las_dimensiones))
 
 
 # In[45]:
@@ -1046,229 +860,4 @@ def ez_watershed(
     
     return markers, distance, labels
 ##
-
-
-# In[74]:
-
-
-segplot(mangueras[llaves[0]], objs, color='green')
-
-
-# In[47]:
-
-
-def try_iter(foo):
-    try:
-        iter(foo)
-    except:
-        print('No iterable amigou')
-
-
-# In[48]:
-
-
-plt.imshow(cv.erode(mangueras[llaves[0]], np.ones((1, 1))), cmap='gray')
-
-
-# In[66]:
-
-
-#_se = np.ones((10,10))
-#_se = disk(1)
-#thin(cv.erode(manguera, _se))
-mangueras_adelgazadas = {
-    nombre: skeletonize(manguera) for nombre, manguera in mangueras_segmentadas.items()
-}
-
-
-# In[ ]:
-
-
-
-
-
-# In[58]:
-
-
-for manguera, esqueleto in zip(mangueras_segmentadas.values(), mangueras_adelgazadas.values()):
-    plt.figure()
-    utils.side_by_side(manguera, esqueleto, cmap='gray')
-    #mfs.img_surf(manguera)
-
-
-# for manguera in mangueras_segmentadas.values():
-#     markers, distance, labels = ez_watershed(manguera, markers=3)
-#     print(markers)
-#     watershed_viz(manguera, distance, labels)
-
-# In[45]:
-
-
-for manguera in mangueras_segmentadas.values():
-    #segments_slic = slic(manguera, n_segments=4, compactness=10, sigma=1)
-    segments_watershed = watershed(sobel(manguera), markers=10, compactness=0.001)
-    plt.figure()
-    plt.imshow(mark_boundaries(manguera, segments_watershed))
-
-
-# In[46]:
-
-
-help(watershed)
-
-
-# In[47]:
-
-
-help(medial_axis)
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[80]:
-
-
-intensities2 = pd.core.frame.DataFrame({
-    key: reg_ref_segmentadas[key].flatten() for key in reg_ref_segmentadas.keys()
-})
-
-
-# In[101]:
-
-
-"""kmeans2 = KMeans(
-    n_clusters=2, 
-    random_state=0, 
-    verbose=False
-).fit(
-    intensities2.
-)"""
-
-
-# In[93]:
-
-
-seg = mangueras[llaves[0]] * 
-
-
-# In[98]:
-
-
-seg.max(), mangueras[llaves[0]].max(), mangueras_segmentadas[llaves[0]].max()
-
-
-# In[99]:
-
-
-utils.side_by_side(mangueras[llaves[0]], seg)
-
-
-# In[100]:
-
-
-utils.side_by_side(mangueras_segmentadas[llaves[0]], seg)
-
-
-# In[108]:
-
-
-mangueras_segmentadas[llaves[0]].dtype
-
-
-# In[133]:
-
-
-_tmp_img = mangueras[llaves[0]]
-utils.side_by_side(_tmp_img, auto_segment(_tmp_img, groups=2))
-
-
-# In[117]:
-
-
-_tmp_img.flatten().reshape(-1, 1)
-
-
-# In[123]:
-
-
-y = [[1, 2], [3, 4]]
-
-
-# In[125]:
-
-
-print(*y)
-
-
-# In[284]:
-
-
-_tmp_img = mangueras[llaves[0]]
-mask = auto_segment(_tmp_img, groups=2)
-sns.distplot(mask.flatten())
-utils.side_by_side(_tmp_img, mask)
-
-
-# In[196]:
-
-
-
-
-
-# In[198]:
-
-
-sns.distplot(mask.flatten(), kde=False)
-
-
-# In[170]:
-
-
-mask[ mask == 63 ].shape
-
-
-# In[177]:
-
-
-2*512*512
-
-
-# In[181]:
-
-
-x= np.linspace(0, 1)
-
-
-# In[182]:
-
-
-x[-]
-
-
-# In[184]:
-
-
-x[::-1] 
-
-
-# In[216]:
-
-
-pd.core.frame.DataFrame({"h": [np.nan, 1, np.nan, 3]}).fillna(0)
-
-
-# In[ ]:
-
-
-
 

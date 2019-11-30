@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[103]:
 
 
 # Type annotations :
@@ -31,6 +31,7 @@ from skimage.segmentation import felzenszwalb, slic, quickshift, watershed
 from skimage.segmentation import mark_boundaries
 import skimage.measure as measure
 import skimage.draw as draw
+from skimage.color import label2rgb
 #from skimage.morphology import black_tophat, skeletonize, convex_hull_image
 #from skimage.morphology import disk
 
@@ -676,14 +677,39 @@ def subdivide_hose(
 ##    
 
 
-# In[97]:
+# In[101]:
 
 
 y = mangueras_segmentadas_amano[llaves[0]]
 yy = subdivide_hose(y, 3, contiguous=True)
-plt.imshow(reduce(cv.bitwise_xor, yy))
+_agregated = reduce(cv.bitwise_xor, yy)
+plt.imshow(_agregated)
 #for sub in yy:
     #utils.side_by_side(y, sub)
+
+
+# In[105]:
+
+
+# label image regions
+label_image = label(_agregated)
+image_label_overlay = label2rgb(label_image, image=_agregated)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.imshow(image_label_overlay)
+
+for region in regionprops(label_image):
+    # take regions with large enough areas
+    if region.area >= 100:
+        # draw rectangle around segmented coins
+        minr, minc, maxr, maxc = region.bbox
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                                  fill=False, edgecolor='red', linewidth=2)
+        ax.add_patch(rect)
+
+ax.set_axis_off()
+plt.tight_layout()
+plt.show()
 
 
 # In[74]:

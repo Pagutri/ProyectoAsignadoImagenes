@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[120]:
+# In[301]:
 
 
 # Type annotations :
-from typing import Tuple, List, Optional, NoReturn, Callable, Any
+from typing import Tuple, List, Optional, NoReturn, Callable, Any, Dict
 
 # Standard and OS :
 import copy
@@ -590,21 +590,31 @@ for coord in el_obj.coords:
 plt.imshow(_hola)
 
 
-# In[232]:
+# In[400]:
 
 
-find_branch_points(_hola).sum()
+#find_branch_points(_hola).sum()
+_tmp = mangueras_segmentadas[llaves[0]]
+sk, ma, skl, th = skeletonize(_tmp), medial_axis(_tmp), skeletonize(_tmp, method='lee'), thin(_tmp)
+la_buena = reduce(cv.bitwise_xor, lmap(np.uint8, [sk, skl, ma, th]))
+utils.side_by_side(_tmp, la_buena)
 
 
-# In[235]:
+# In[402]:
 
 
-def max_skeleton(img: np.ndarray):
+plt.imshow(canny(_tmp)[100:300, 500:])
+
+
+# In[381]:
+
+
+def max_skeleton(img: np.ndarray, verbose: bool = False, method: Optional[str] = None):
     """
     """
     
     # Find the sekeleton of the image :
-    _skeleton = skeletonize(img)
+    _skeleton = skeletonize(img, method=method)
     # Label each region of the skeleton :
     _label_image = label(_skeleton, return_num=False)
     # Get the properties of each label :
@@ -614,13 +624,36 @@ def max_skeleton(img: np.ndarray):
     
     _largest_on_image = np.zeros_like(img, dtype=img.dtype)
     for _coord in _largest.coords:
-        i, j = _coord
-        _largest_on_image[(i, j)] = 1
+        _largest_on_image[tuple(_coord)] = 1
+    
+    split_nodes: list = []
+    
+    for point in _largest.coords:
+        _neighbours = 0
+        for nei in get_neighbours(point, shape=preg4.shape):
+            _neighbours += preg4[tuple(nei)]
+        if _neighbours == 3:
+            split_nodes.append(point)
+    
+    for node in split_nodes:
+        _largest_on_image[tuple(node)] = 0
     
     # Call the pruning function
     
     return _largest_on_image
     
+
+
+# In[392]:
+
+
+plt.imshow(max_skeleton(mangueras_segmentadas[llaves[4]]))
+
+
+# In[396]:
+
+
+plt.imshow(skeletonize(mangueras_segmentadas[llaves[0]], method='lee'))
 
 
 # In[267]:
@@ -671,23 +704,29 @@ def get_neighbours(p, exclude_p=True, shape=None):
     return neighbours
 
 
-# In[284]:
+# In[298]:
 
 
+del split_nodes
+
+
+# In[305]:
+
+
+#%%timeit
 split_nodes: list = []
     
 for point in el_obj.coords:
     _neighbours = 0
     for nei in get_neighbours(point, shape=preg4.shape):
-        i, j = nei
-        _neighbours += preg4[(i,j)]
+        _neighbours += preg4[tuple(nei)]
     if _neighbours > 2:
         split_nodes.append(point)
 
 print(split_nodes)
 
 
-# In[292]:
+# In[308]:
 
 
 for point in split_nodes:
@@ -697,7 +736,30 @@ for point in split_nodes:
     print('\n')
 
 
-# In[248]:
+# In[318]:
+
+
+path_length: Dict[np.ndarray, int] = {}
+visited: List[np.ndarray] = [] 
+
+
+for point in split_nodes:
+    print(point)
+    visited.append(point)
+    _neighbours = (lambda y: [x for x in get_neighbours(point, shape=y.shape) if y[tuple(x)]])(preg4)
+    visited += _neighbours
+    for nei in _neighbours:
+        print('\t', nei, preg4[tuple(nei)])
+    print('\n')
+
+
+# In[313]:
+
+
+check_if_on(np.array([255, 595]))
+
+
+# In[340]:
 
 
 def thinning(img: np.ndarray, se: np.ndarray) -> np.ndarray:
@@ -713,7 +775,7 @@ def prune(img: np.ndarray, n: int = 1):
     
      # Construct all of the structuring elements needed from clockwise rotations.
     clockwise_rotations = lambda y: [y] + list(map(lambda x: np.rot90(y, x), reversed(range(1, 3+1))))
-    _b1 = np.array([[0, 0, 0],[1, 1, 0],[0, 0, 0]], dtype=img.dtype)
+    _b1 = np.array([[1, 0, 0],[1, 1, 0],[1, 0, 0]], dtype=img.dtype)
     _b2 = np.array([[1, 0, 0],[0, 1, 0],[0, 0, 0]], dtype=img.dtype)
     B = reduce(
         lambda x, y: x + y, 
@@ -723,9 +785,10 @@ def prune(img: np.ndarray, n: int = 1):
     
     # Thinning, by all of the structuring elements :
     
-    X1 = reduce(thinning, n*B, img)
-    #while n > 1:
-    #    X1 = reduce(thinning, B, X1)
+    X1 = reduce(thinning, B, img)
+    while n > 1:
+        X1 = reduce(thinning, B, X1)
+        n -= 1
     
     return X1
     
@@ -743,35 +806,29 @@ def prune(img: np.ndarray, n: int = 1):
 ##
 
 
-# In[253]:
+# In[341]:
 
 
-pruned = prune(_hola, n=15)
+pruned = prune(_hola, n=5)
 pruned.nonzero()
 
 
-# In[264]:
+# In[342]:
 
 
 neighbours = lambda image, pos: pad1( image[max(0, pos[0]-1):min(pos[0]+1, image.shape[0]), max(0, pos[1]-1):min(pos[1]+1, image.shape[1])]  )
 
 
-# In[265]:
+# In[343]:
 
 
 neighbours(np.array([[0, 1, 0],[0, 1, 0],[1, 0, 1]]), (1, 2))
 
 
-# In[260]:
+# In[344]:
 
 
-plt.imshow(pruned[:270, 590:610])
-
-
-# In[175]:
-
-
-plt.imshow(max_skeleton(mangueras_segmentadas[llaves[0]]))
+plt.imshow(pruned)
 
 
 # In[111]:

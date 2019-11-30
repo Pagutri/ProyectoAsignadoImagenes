@@ -630,7 +630,7 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[572]:
+# In[576]:
 
 
 def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[np.ndarray]:
@@ -651,6 +651,8 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[n
     _big_chunks = np.array_split(_long, n)
     _small_chunks = np.array_split(_short, n)
     
+    print(_big_chunks[0][0], _small_chunks[0][0])
+    
     # Create n subdivision masks : 
     _masked = [np.zeros_like(img, dtype=img.dtype) for i in range(n)]
     
@@ -662,8 +664,8 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[n
         rr1, cc1 = draw.line(*_small_chunks[i][0], *_big_chunks[i][0])
         rr2, cc2 = draw.line(*_small_chunks[i][-1], *_big_chunks[i][-1])
         #print(rr1)
-        _masked[rr1, cc1] = 1
-        _masked[rr2, cc2] = 1
+        #_masked[rr1, cc1] = 1
+        #_masked[rr2, cc2] = 1
     
     return [ ndi.binary_fill_holes(_mask) for _mask in _masked ]
     
@@ -685,10 +687,12 @@ for node in split_nodes:
     _largest_on_image[tuple(node)] = 0
 
 
-# In[573]:
+# In[578]:
 
 
 yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 4)
+rr, cc = draw.line(*[1, 15], *[22, 32])
+yy[0][rr, cc] = 1
 plt.imshow(yy[0])
 
 

@@ -630,70 +630,64 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[51]:
+# In[88]:
 
 
-def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[np.ndarray]:
+def subdivide_hose(
+    img: np.ndarray, 
+    n: int = 2, 
+    contiguous: bool = False,
+    disksize: Optional[float] = None
+) -> List[np.ndarray]:
     """
+        Subdivide a hose into n chunks, automatically.
     """
     
     _edges = canny(img)
     _label_image = label(_edges, return_num=False)
     _objs = regionprops(_label_image)
     
-    _largest  = reduce(lambda x, y: x if x.area > y.area else y, _objs)
     _smallest = reduce(lambda x, y: x if x.area < y.area else y, _objs)
     
-    # Sort according to columns. 
-    _long  = np.array(sorted(_largest.coords,  key=itemgetter(1)))
-    _short = np.array(sorted(_smallest.coords, key=itemgetter(1)))
-    
-    _big_chunks = np.array_split(_long, n)
+    if contiguous:
+        # Sort according to columns. 
+        _short = np.array(sorted(_smallest.coords, key=itemgetter(1)))
+    else:
+        _short = _smallest.coords
     _small_chunks = np.array_split(_short, n)
-    
-    print(_big_chunks[0][0], _small_chunks[0][0])
     
     # Create n subdivision masks : 
     _masked = [np.zeros_like(img, dtype=img.dtype) for i in range(n)]
     
     for i in range(len(_masked)):
-        for _coord in _big_chunks[i]:
-            _masked[i][tuple(_coord)] = 1
         for _coord in _small_chunks[i]:
             _masked[i][tuple(_coord)] = 1
-        rr1, cc1 = draw.line(*_small_chunks[i][0], *_big_chunks[i][0])
-        rr2, cc2 = draw.line(*_small_chunks[i][-1], *_big_chunks[i][-1])
-        #print(rr1)
-        #_masked[rr1, cc1] = 1
-        #_masked[rr2, cc2] = 1
     
-    return [ ndi.binary_fill_holes(_mask) for _mask in _masked ]
+    disksize = disksize if disksize is not None else 20
     
+    return [ cv.bitwise_and(np.uint8(img), np.uint8(morphology.dilation(_mask, disk(disksize)))) for _mask in _masked ]
+##    
 
 
-# In[52]:
+# In[89]:
 
 
-split_nodes: list = []
-
-for point in _largest.coords:
-    _neighbours = 0
-    for nei in get_neighbours(point, shape=preg4.shape):
-        _neighbours += preg4[tuple(nei)]
-    if _neighbours == 3:
-        split_nodes.append(point)
-
-for node in split_nodes:
-    _largest_on_image[tuple(node)] = 0
+y = mangueras_segmentadas_amano[llaves[0]]
+yy = subdivide_hose(y, 5, contiguous=True)
+for sub in yy:
+    utils.side_by_side(y, sub)
 
 
-# In[69]:
+# In[74]:
 
 
-yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 2)
-rr, cc = draw.line(*[1, 15], *[22, 32])
-yy[0][rr, cc] = 1
-plt.imshow( cv.bitwise_and(np.uint8(mangueras_segmentadas_amano[llaves[3]]), np.uint8(morphology.dilation(yy[0], disk(20)))))
+yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 10)
+#rr, cc = draw.line(*[1, 15], *[22, 32])
+#yy[0][rr, cc] = 1
+for y in yy:
+    plt.figure()
+    utils.side_by_side(mangueras_segmentadas_amano)
+    #plt.imshow( cv.bitwise_and(np.uint8(mangueras_segmentadas_amano[llaves[3]]), np.uint8(morphology.dilation(y, disk(20)))))
 
 
 # In[62]:

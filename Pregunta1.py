@@ -696,7 +696,7 @@ region_info.describe()
 """
 
 
-# In[33]:
+# In[137]:
 
 
 region_info_list = list(map(
@@ -705,7 +705,7 @@ region_info_list = list(map(
 region_info = pd.concat(region_info_list, axis=1)
 
 
-# In[34]:
+# In[138]:
 
 
 region_info.describe()
@@ -834,7 +834,7 @@ mangueras_subdivididas_2[llaves[0]][0]
 
 
 
-# In[115]:
+# In[162]:
 
 
 def gen_tabla_subdivididas(y: Dict[str, List[np.ndarray]]) -> pd.core.frame.DataFrame:
@@ -843,20 +843,23 @@ def gen_tabla_subdivididas(y: Dict[str, List[np.ndarray]]) -> pd.core.frame.Data
     """
     
     return pd.core.frame.DataFrame({
+        "N. Region": [i for i in range(1, len(y)+1)],
         "Num. pixeles": [len(x[ x != 0]) for x in y ],
         "Intensidad media": [ x[ x != 0].mean() for x in y ],
-        "Varianza": [ x[ x != 0].std()**2 for x in y ]
+        "Varianza": [ x[ x != 0].std()**2 for x in y ],
+        "Desv std": [ x[ x != 0].std() for x in y ],
+        "Error std": [ x[ x != 0].std()**2 / len(x[ x != 0 ].flatten()) for x in y]
     })
 
 
-# In[116]:
+# In[154]:
 
 
 y = mangueras_subdivididas_2[llaves[0]]
 [type(x) for x in y]
 
 
-# In[117]:
+# In[163]:
 
 
 tabla_2_secciones = {
@@ -864,7 +867,7 @@ tabla_2_secciones = {
 }
 
 
-# In[120]:
+# In[164]:
 
 
 tabla_6_secciones = {
@@ -872,17 +875,35 @@ tabla_6_secciones = {
 }
 
 
-# In[122]:
+# In[165]:
+
+
+tabla_6_secciones = {
+    key: gen_tabla_subdivididas(value) for key, value in mangueras_subdivididas_6.items()
+}
+
+
+# In[166]:
 
 
 #print(tabla_2_secciones[llaves[1]])
 tabla_6_secciones[llaves[1]]
 
 
+# In[175]:
+
+
+for nombre, dtf in tabla_6_secciones.items(): 
+    plt.figure()
+    plt.errorbar(x=dtf["N. Region"], y=dtf['Intensidad media'], yerr=dtf['Desv std'],
+                fmt='o', ecolor='orangered', color='steelblue', capsize=2)
+    plt.title(nombre)
+
+
 # In[119]:
 
 
-_sec1 = mangueras_subdivididas_2[llaves[1]][0]
+_sec1  = mangueras_subdivididas_2[llaves[1]][0]
 _data1 = _sec1[ _sec1 != 0].flatten()
 print(_data1.mean(), _data1.std()**2)
 sns.distplot(_data1)
@@ -897,6 +918,53 @@ if _plot:
     for llave in llaves:
         plt.figure()
         plt.imshow(mangueras_subdivididas_6[llave], cmap='gray')
+
+
+# In[126]:
+
+
+norm_values: Dict[str, float] = {}
+for key, image in segmented_ref_reg.items():
+     norm_values.update({
+         key: image[ image != 0 ].mean()
+     })
+
+
+# In[128]:
+
+
+mangueras_normalizadas = {
+    key: mangueras[key] / norm_values[key] for key in llaves
+}
+
+
+# In[133]:
+
+
+segmented_normalised_ref_reg = {
+    key: mangueras_normalizadas[key] * region_ref4[key] for key in llaves
+}
+
+
+# In[136]:
+
+
+norm_region_info_list = list(map(
+    lambda x, y: pd.core.series.Series(x[ x != 0].flatten(), name=y), segmented_normalised_ref_reg.values(), segmented_normalised_ref_reg.keys()
+))
+region_info = pd.concat(norm_region_info_list, axis=1)
+region_info.describe()
+
+
+# In[132]:
+
+
+for llave in llaves:
+    #plt.figure()
+    utils.side_by_side(
+        mangueras[llave], mangueras_normalizadas[llave], 
+        title1=key, title2=f"{key} normalizada"
+    )
 
 
 # In[ ]:

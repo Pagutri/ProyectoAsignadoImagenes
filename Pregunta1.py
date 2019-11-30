@@ -677,39 +677,55 @@ def subdivide_hose(
 ##    
 
 
-# In[101]:
+# In[126]:
 
 
 y = mangueras_segmentadas_amano[llaves[0]]
-yy = subdivide_hose(y, 3, contiguous=True)
+yy = subdivide_hose(y, 6, contiguous=False)
 _agregated = reduce(cv.bitwise_xor, yy)
 plt.imshow(_agregated)
 #for sub in yy:
     #utils.side_by_side(y, sub)
 
 
-# In[105]:
+# In[127]:
 
 
 # label image regions
 label_image = label(_agregated)
 image_label_overlay = label2rgb(label_image, image=_agregated)
+font = cv.FONT_HERSHEY_SIMPLEX 
+color = (255, 0, 0)
+letrero = 1
+thickness = 1
 
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.imshow(image_label_overlay)
+#ax.imshow(image_label_overlay)
 
 for region in regionprops(label_image):
-    # take regions with large enough areas
-    if region.area >= 100:
-        # draw rectangle around segmented coins
-        minr, minc, maxr, maxc = region.bbox
-        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
-                                  fill=False, edgecolor='red', linewidth=2)
-        ax.add_patch(rect)
-
+    # draw rectangle around segmented labels
+    minr, minc, maxr, maxc = region.bbox
+    rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                            fill=False, edgecolor='red', linewidth=2)
+    ax.add_patch(rect)
+    y0, x0 = region.centroid
+    y0 = int(y0)
+    x0 = int(x0)
+    org = (x0, y0)
+    image_label_overlay = cv.putText(image_label_overlay, str(letrero), org, font, 1, color, thickness, cv.LINE_AA)
+    letrero += 1
+    #cv.putText(ori,'Life2Coding',(30,256), font, 2.5,(255,255,255),2,cv2.LINE_AA)
+    
+ax.imshow(image_label_overlay)
 ax.set_axis_off()
 plt.tight_layout()
 plt.show()
+
+
+# In[108]:
+
+
+help(mpatches)
 
 
 # In[74]:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[301]:
+# In[519]:
 
 
 # Type annotations :
@@ -24,11 +24,13 @@ from skimage.feature import canny, peak_local_max
 from skimage.util.dtype import dtype_range
 from skimage.util import img_as_ubyte, img_as_float
 from skimage import exposure
-from skimage.morphology import disk, skeletonize, thin, medial_axis, watershed, max_tree
+import skimage.morphology as morphology
+from skimage.morphology import disk, skeletonize, thin, medial_axis, watershed, max_tree, convex_hull_image, closing
 from skimage.filters import sobel
 from skimage.segmentation import felzenszwalb, slic, quickshift, watershed
 from skimage.segmentation import mark_boundaries
 import skimage.measure as measure
+import skimage.draw as draw
 #from skimage.morphology import black_tophat, skeletonize, convex_hull_image
 #from skimage.morphology import disk
 
@@ -50,7 +52,8 @@ from sklearn.cluster import KMeans
 
 # Functional programing tools : 
 from functools import partial, reduce
-from itertools import chain
+from itertools import islice, chain, repeat
+from operator import itemgetter
 
 
 # In[228]:
@@ -87,13 +90,23 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[5]:
+# In[436]:
 
+
+def chunk_pad(it, size, padval=None):
+    """
+        Splits a list into evenly sized chunks.
+        Taken from : https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+    """
+    it = chain(iter(it), repeat(padval))
+    return iter(lambda: tuple(islice(it, size)), (padval,) * size)
+##
 
 
 def auto_segment(
     img: np.ndarray, 
     groups: int = 2,
+    skew: Optional[float] = None,
     nonzero: bool = False,
     verbose: bool = False, 
     save_file: Optional[str] = None,
@@ -103,7 +116,7 @@ def auto_segment(
         Segment (by thresholding)
     """
     
-    assert type(groups) is int, f"type(groups) == '{type(groups)}', it should be int."
+    assert type(groups) is int, f"type(groups) == '{type(groups)}', should be int."
     
     #Create the destination image from the image passed to the function, casting it when needed.
     _floats = [np.float, np.float16, np.float32, np.float64, np.float128]
@@ -126,6 +139,10 @@ def auto_segment(
     # We obtain our threshold values as pairwise means between cluster centers.
     _centers['k'] = _centers.rolling(2).mean()
     
+    # If we desire to skew the thresholding process, we modify the K series :
+    if skew is not None:
+        _centers['k'] = _centers['k'].apply(lambda x: x + skew)
+    
     # Create the values that will fill the image, according to the thresholds.
     _fill_vals = np.linspace(0, 1, groups, dtype=np.float64)
     
@@ -137,13 +154,13 @@ def auto_segment(
     _mask = np.nonzero( img > ks[-1] )
     dst[ _mask ] = _fill_vals[-1]
     
-    
     if verbose:
         fig = plt.figure(figsize = figsize)
+        if skew is not None:
+            print(f"\n\n Each one of the K's was skewed by a value of {skew}\n\n")
         lmap(lambda x: plt.axvline(x, color='r'), _centers.k.dropna())
         lmap(lambda x: plt.axvline(x, color='g'), _centers.means)
         _ = sns.distplot(_show_intensities, kde=False)
-        
         fig2 = plt.figure(figsize = figsize)
         fig2.add_subplot(1, 2, 1)
         plt.imshow(img, cmap = 'gray')
@@ -151,8 +168,6 @@ def auto_segment(
         fig2.add_subplot(1, 2, 2)
         plt.imshow(dst, cmap = 'gray')
         plt.title(f"Threshold ({groups} groups)")
-        
-        
         
     return dst
 ##
@@ -189,6 +204,7 @@ def ref_region(
         #plt.title('Lel')
         
     return _eroded
+##
 
 
 # In[6]:
@@ -197,7 +213,7 @@ def ref_region(
 ls images/
 
 
-# In[7]:
+# In[441]:
 
 
 cwd  = os.path.abspath('.')
@@ -250,11 +266,11 @@ for i in intensities:
 
 # Nótese lo similares que son las distribuciones de las intensidades, independientemente de la intensidad del flujo.
 
-# In[116]:
+# In[416]:
 
 
 mangueras_segmentadas = {
-    key: auto_segment(mangueras[key], verbose=False, groups=2) for key in mangueras.keys()
+    key: auto_segment(mangueras[key], verbose=False, groups=2, skew=None) for key in mangueras.keys()
 }
 
 
@@ -262,7 +278,7 @@ mangueras_segmentadas = {
 # 
 # Usamos la función que diseñamos : ```auto_segment()```
 
-# In[117]:
+# In[417]:
 
 
 for nombre in mangueras.keys():
@@ -606,7 +622,15 @@ utils.side_by_side(_tmp, la_buena)
 plt.imshow(canny(_tmp)[100:300, 500:])
 
 
-# In[381]:
+# In[418]:
+
+
+mangueras_segmentadas_amano = {
+    key: auto_segment(mangueras[key], verbose=False, groups=2, skew=5) for key in mangueras.keys()
+}
+
+
+# In[543]:
 
 
 def max_skeleton(img: np.ndarray, verbose: bool = False, method: Optional[str] = None):
@@ -614,17 +638,41 @@ def max_skeleton(img: np.ndarray, verbose: bool = False, method: Optional[str] =
     """
     
     # Find the sekeleton of the image :
-    _skeleton = skeletonize(img, method=method)
+    # TMP CHANGES : 
+    #_skeleton = skeletonize(img, method=method)
     # Label each region of the skeleton :
+    # TMP CHANGES :
+    _skeleton = canny(img)
     _label_image = label(_skeleton, return_num=False)
     # Get the properties of each label :
     _objs = regionprops(_label_image)
     # Keep only the skeleton which has the most pixels :
-    _largest = reduce(lambda x, y: x if x.area > y.area else y, _objs)
+    _largest  = reduce(lambda x, y: x if x.area > y.area else y, _objs)
+    _smallest = reduce(lambda x, y: x if x.area < y.area else y, _objs)
     
-    _largest_on_image = np.zeros_like(img, dtype=img.dtype)
-    for _coord in _largest.coords:
-        _largest_on_image[tuple(_coord)] = 1
+    #_N, _n = lmap(len, [_largest.coords, _smallest.coords])
+    #print(np.array_split(_largest.coords, 3)[0])
+    #print(_chunks[0])
+    
+    _long  = np.array(sorted(_largest.coords,  key=itemgetter(1)))
+    _short = np.array(sorted(_smallest.coords, key=itemgetter(1)))
+    
+    _big_chunks = np.array_split(_long, 3)
+    _small_chunks = np.array_split(_short, 3)
+    
+    
+    
+    _masked = np.zeros_like(img, dtype=img.dtype)
+    for _coord in _big_chunks[1]:
+        _masked[tuple(_coord)] = 1
+    for _coord in _small_chunks[1]:
+        _masked[tuple(_coord)] = 1
+    
+    rr1, cc1 = draw.line(*_small_chunks[1][0], *_big_chunks[1][0])
+    rr2, cc2 = draw.line(*_small_chunks[1][-1], *_big_chunks[1][-1])
+    #print(rr, cc)
+    _masked[rr1, cc1] = 1
+    _masked[rr2, cc2] = 1
     
     split_nodes: list = []
     
@@ -640,14 +688,24 @@ def max_skeleton(img: np.ndarray, verbose: bool = False, method: Optional[str] =
     
     # Call the pruning function
     
-    return _largest_on_image
+    return ndi.binary_fill_holes(_masked)
     
 
 
-# In[392]:
+# In[544]:
 
 
-plt.imshow(max_skeleton(mangueras_segmentadas[llaves[4]]))
+_tmp = mangueras_segmentadas_amano[llaves[0]]
+_masked = np.zeros_like(_tmp, dtype=_tmp.dtype)
+cc, dd = draw.line(100, 100, 400, 400)
+_masked[cc, dd] = 1
+plt.imshow(_masked)
+
+
+# In[545]:
+
+
+plt.imshow(max_skeleton(mangueras_segmentadas_amano[llaves[3]]))
 
 
 # In[396]:

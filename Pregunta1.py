@@ -630,7 +630,7 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[560]:
+# In[572]:
 
 
 def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[np.ndarray]:
@@ -661,6 +661,7 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[n
             _masked[i][tuple(_coord)] = 1
         rr1, cc1 = draw.line(*_small_chunks[i][0], *_big_chunks[i][0])
         rr2, cc2 = draw.line(*_small_chunks[i][-1], *_big_chunks[i][-1])
+        #print(rr1)
         _masked[rr1, cc1] = 1
         _masked[rr2, cc2] = 1
     
@@ -684,10 +685,11 @@ for node in split_nodes:
     _largest_on_image[tuple(node)] = 0
 
 
-# In[561]:
+# In[573]:
 
 
-plt.imshow(subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 4)[1])
+yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 4)
+plt.imshow(yy[0])
 
 
 # In[396]:

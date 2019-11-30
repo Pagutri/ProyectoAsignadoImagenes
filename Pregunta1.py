@@ -630,7 +630,7 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[88]:
+# In[96]:
 
 
 def subdivide_hose(
@@ -648,13 +648,18 @@ def subdivide_hose(
     _objs = regionprops(_label_image)
     
     _smallest = reduce(lambda x, y: x if x.area < y.area else y, _objs)
+    _largest  = reduce(lambda x, y: x if x.area > y.area else y, _objs)
     
     if contiguous:
         # Sort according to columns. 
         _short = np.array(sorted(_smallest.coords, key=itemgetter(1)))
+        _long  = np.array(sorted(_largest.coords,  key=itemgetter(1)))
     else:
         _short = _smallest.coords
+        _long  = _largest.coords
+    
     _small_chunks = np.array_split(_short, n)
+    _large_chunks = np.array_split(_long, n)
     
     # Create n subdivision masks : 
     _masked = [np.zeros_like(img, dtype=img.dtype) for i in range(n)]
@@ -662,14 +667,16 @@ def subdivide_hose(
     for i in range(len(_masked)):
         for _coord in _small_chunks[i]:
             _masked[i][tuple(_coord)] = 1
+        for _coord in _large_chunks[i]:
+            _masked[i][tuple(_coord)] = 1
     
-    disksize = disksize if disksize is not None else 20
+    disksize = disksize if disksize is not None else 13
     
     return [ cv.bitwise_and(np.uint8(img), np.uint8(morphology.dilation(_mask, disk(disksize)))) for _mask in _masked ]
 ##    
 
 
-# In[91]:
+# In[97]:
 
 
 y = mangueras_segmentadas_amano[llaves[0]]

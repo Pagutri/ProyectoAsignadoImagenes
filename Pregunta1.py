@@ -630,41 +630,39 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[547]:
+# In[550]:
 
 
-def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False):
+def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[np.ndarray]:
     """
     """
     
-    
-    _skeleton = canny(img)
-    _label_image = label(_skeleton, return_num=False)
-    # Get the properties of each label :
+    _edges = canny(img)
+    _label_image = label(_edges, return_num=False)
     _objs = regionprops(_label_image)
     
     _largest  = reduce(lambda x, y: x if x.area > y.area else y, _objs)
     _smallest = reduce(lambda x, y: x if x.area < y.area else y, _objs)
     
+    # Sort according to columns. 
     _long  = np.array(sorted(_largest.coords,  key=itemgetter(1)))
     _short = np.array(sorted(_smallest.coords, key=itemgetter(1)))
     
-    _big_chunks = np.array_split(_long, 3)
-    _small_chunks = np.array_split(_short, 3)
+    _big_chunks = np.array_split(_long, n)
+    _small_chunks = np.array_split(_short, n)
     
+    # Create n subdivision masks : 
+    _masked = [np.zeros_like(img, dtype=img.dtype) for i in range(n)]
     
-    
-    _masked = np.zeros_like(img, dtype=img.dtype)
-    for _coord in _big_chunks[1]:
-        _masked[tuple(_coord)] = 1
-    for _coord in _small_chunks[1]:
-        _masked[tuple(_coord)] = 1
-    
-    rr1, cc1 = draw.line(*_small_chunks[1][0], *_big_chunks[1][0])
-    rr2, cc2 = draw.line(*_small_chunks[1][-1], *_big_chunks[1][-1])
-    #print(rr, cc)
-    _masked[rr1, cc1] = 1
-    _masked[rr2, cc2] = 1
+    for i in len(_masked):
+        for _coord in _big_chunks[i]:
+            _masked[i][tuple(_coord)] = 1
+        for _coord in _small_chunks[i]:
+            _masked[i][tuple(_coord)] = 1
+        rr1, cc1 = draw.line(*_small_chunks[i][0], *_big_chunks[i][0])
+        rr2, cc2 = draw.line(*_small_chunks[i][-1], *_big_chunks[i][-1])
+        _masked[rr1, cc1] = 1
+        _masked[rr2, cc2] = 1
     
     split_nodes: list = []
     
@@ -684,17 +682,13 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False):
     
 
 
-# In[544]:
+# In[ ]:
 
 
-_tmp = mangueras_segmentadas_amano[llaves[0]]
-_masked = np.zeros_like(_tmp, dtype=_tmp.dtype)
-cc, dd = draw.line(100, 100, 400, 400)
-_masked[cc, dd] = 1
-plt.imshow(_masked)
 
 
-# In[548]:
+
+# In[551]:
 
 
 plt.imshow(subdivide_hose(mangueras_segmentadas_amano[llaves[3]]))

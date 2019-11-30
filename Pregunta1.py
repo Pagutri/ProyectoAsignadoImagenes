@@ -669,13 +669,14 @@ def subdivide_hose(
 ##    
 
 
-# In[89]:
+# In[91]:
 
 
 y = mangueras_segmentadas_amano[llaves[0]]
-yy = subdivide_hose(y, 5, contiguous=True)
-for sub in yy:
-    utils.side_by_side(y, sub)
+yy = subdivide_hose(y, 3, contiguous=True)
+plt.imshow(reduce(cv.bitwise_xor, yy))
+#for sub in yy:
+    #utils.side_by_side(y, sub)
 
 
 # In[74]:

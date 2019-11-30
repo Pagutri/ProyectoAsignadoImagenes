@@ -92,7 +92,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[49]:
+# In[186]:
 
 
 
@@ -338,7 +338,7 @@ def subdivide_hose(
 ##
 
 
-def plot_label_image_regions(img: np.ndarray) -> NoReturn:
+def plot_label_image_regions(img: np.ndarray, title: Optional[str] = None) -> NoReturn:
     """
     """
     # label image regions
@@ -368,8 +368,40 @@ def plot_label_image_regions(img: np.ndarray) -> NoReturn:
     ax.imshow(image_label_overlay)
     ax.set_axis_off()
     plt.tight_layout()
+    if title is not None:
+        plt.title(title)
     plt.show()
     plt.close()
+##
+
+def get_label_image_regions(img: np.ndarray) -> NoReturn:
+    """
+    """
+    # label image regions
+    label_image = label(img)
+    image_label_overlay = label2rgb(label_image, image=img)
+    font = cv.FONT_HERSHEY_SIMPLEX 
+    color = (255, 0, 0)
+    letrero = 1
+    thickness = 1
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    #ax.imshow(image_label_overlay)
+
+    for region in regionprops(label_image):
+        # draw rectangle around segmented labels
+        minr, minc, maxr, maxc = region.bbox
+        rect = mpatches.Rectangle((minc, minr), maxc - minc, maxr - minr,
+                            fill=False, edgecolor='red', linewidth=2)
+        ax.add_patch(rect)
+        y0, x0 = region.centroid
+        y0 = int(y0)
+        x0 = int(x0)
+        org = (x0, y0)
+        image_label_overlay = cv.putText(image_label_overlay, str(letrero), org, font, 1, color, thickness, cv.LINE_AA)
+        letrero += 1
+    
+    return image_label_overlay
 ##
 
 #################################### Experimental : #######################################
@@ -718,22 +750,32 @@ region_info.describe()
 sns.pairplot(region_info.dropna())
 
 
-# In[36]:
+# In[181]:
 
 
 #find_branch_points(_hola).sum()
 _tmp = mangueras_segmentadas[llaves[0]]
 sk, ma, skl, th = skeletonize(_tmp), medial_axis(_tmp), skeletonize(_tmp, method='lee'), thin(_tmp)
 la_buena = reduce(cv.bitwise_xor, lmap(np.uint8, [sk, skl, ma, th]))
-utils.side_by_side(_tmp, la_buena)
+utils.side_by_side(_tmp, la_buena, title1="Original", title2="skeletonize(), medial_axis(), skeletonize(method='lee'), thin()")
 
 
-# In[37]:
+# In[178]:
 
 
 mangueras_segmentadas_amano = {
-    key: auto_segment(mangueras[key], verbose=False, groups=2, skew=5) for key in mangueras.keys()
+    key: auto_segment(mangueras[key], verbose=False, groups=2, skew=10) for key in mangueras.keys()
 }
+
+
+# In[179]:
+
+
+for nombre in mangueras_segmentadas_amano.keys():
+    utils.side_by_side(
+        mangueras[nombre], mangueras_segmentadas_amano[nombre], 
+        title1=nombre, title2=f"{nombre} : manguera segmentada, skew={5}"
+    )
 
 
 # In[69]:
@@ -750,6 +792,14 @@ mascaras_agregadas_2 = {
 mascaras_subdivididas_2 = {
     key: subdivide_hose(mangueras_segmentadas_amano[key], 2, contiguous=True) for key in llaves
 }
+
+
+# In[182]:
+
+
+for nom, masc in mascaras_subdivididas_2.items():
+    for i, mas in enumerate(masc):
+        utils.side_by_side(mangueras_segmentadas[nom], mas, title1="Original", title2=f"Subsegmentación {i}")
 
 
 # In[72]:
@@ -779,11 +829,12 @@ mascaras_subdivididas_6 = {
 }
 
 
-# In[75]:
+# In[187]:
 
 
-plot_label_image_regions(mascaras_agregadas_2[llaves[3]])
-plot_label_image_regions(mascaras_agregadas_6[llaves[3]])
+#plot_label_image_regions(mascaras_agregadas_2[llaves[3]])
+for llave in llaves:
+    plot_label_image_regions(mascaras_agregadas_6[llave], title=llave)
 
 
 # In[76]:
@@ -828,10 +879,37 @@ mangueras_agregadas_6 = {
 mangueras_subdivididas_2[llaves[0]][0]
 
 
-# In[100]:
+# In[226]:
 
 
+regiones_verdaderas = {
+    key: [ reg for reg in regionprops(label(pad(mangueras_agregadas_6[key]))) if reg.area > 90 ]
+    for key in llaves
+}
 
+
+# In[213]:
+
+
+plt.imshow(pad(mangueras_agregadas_6[llaves[0]]))
+
+
+# In[227]:
+
+
+segplot(mangueras_agregadas_6[llaves[0]], regiones_verdaderas[llaves[0]])
+
+
+# In[223]:
+
+
+vrais = [ reg for reg in regiones_verdaderas[llaves[0]] if reg.area > 90 ]
+
+
+# In[225]:
+
+
+sns.distplot([v.area for v in vrais])
 
 
 # In[162]:
@@ -883,11 +961,50 @@ tabla_6_secciones = {
 }
 
 
-# In[166]:
+# In[192]:
 
 
-#print(tabla_2_secciones[llaves[1]])
-tabla_6_secciones[llaves[1]]
+k = llaves[0]
+print(k)
+tabla_6_secciones[k]
+
+
+# In[193]:
+
+
+k = llaves[1]
+print(k)
+tabla_6_secciones[k]
+
+
+# In[194]:
+
+
+k = llaves[2]
+print(k)
+tabla_6_secciones[k]
+
+
+# In[195]:
+
+
+k = llaves[3]
+print(k)
+tabla_6_secciones[k]
+
+
+# In[196]:
+
+
+k = llaves[4]
+print(k)
+tabla_6_secciones[k]
+
+
+# In[ ]:
+
+
+
 
 
 # In[175]:
@@ -956,15 +1073,27 @@ region_info = pd.concat(norm_region_info_list, axis=1)
 region_info.describe()
 
 
-# In[132]:
+# In[199]:
 
 
 for llave in llaves:
     #plt.figure()
     utils.side_by_side(
         mangueras[llave], mangueras_normalizadas[llave], 
-        title1=key, title2=f"{key} normalizada"
+        title1=llave, title2=f"{llave} normalizada"
     )
+
+
+# In[206]:
+
+
+for llave in llaves:
+    plt.figure()
+    sns.distplot(mangueras[llave].flatten(), kde=False)
+    plt.title(llave)
+    plt.figure()
+    sns.distplot(mangueras_normalizadas[llave].flatten(), kde=False)
+    plt.title(f"{llave} normalizada")
 
 
 # In[ ]:

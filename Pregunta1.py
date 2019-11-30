@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[519]:
+# In[1]:
 
 
 # Type annotations :
@@ -56,7 +56,7 @@ from itertools import islice, chain, repeat
 from operator import itemgetter
 
 
-# In[228]:
+# In[2]:
 
 
 import mfilt_funcs as mfs
@@ -72,7 +72,7 @@ importlib.reload(forutils)
 from forutils import find_branch_points
 
 
-# In[263]:
+# In[3]:
 
 
 lmap = lambda x, y: list(map(x, y))
@@ -90,7 +90,7 @@ plt.style.use('seaborn-deep')
 plt.rcParams['figure.figsize'] = (12, 8)
 
 
-# In[436]:
+# In[5]:
 
 
 def chunk_pad(it, size, padval=None):
@@ -213,7 +213,7 @@ def ref_region(
 ls images/
 
 
-# In[441]:
+# In[7]:
 
 
 cwd  = os.path.abspath('.')
@@ -266,7 +266,7 @@ for i in intensities:
 
 # Nótese lo similares que son las distribuciones de las intensidades, independientemente de la intensidad del flujo.
 
-# In[416]:
+# In[12]:
 
 
 mangueras_segmentadas = {
@@ -278,7 +278,7 @@ mangueras_segmentadas = {
 # 
 # Usamos la función que diseñamos : ```auto_segment()```
 
-# In[417]:
+# In[13]:
 
 
 for nombre in mangueras.keys():
@@ -290,7 +290,7 @@ for nombre in mangueras.keys():
 
 # Aquí podemos observar las imágenes con su respectiva máscara de segmentación.
 
-# In[17]:
+# In[14]:
 
 
 region_ref1 = {
@@ -298,7 +298,7 @@ region_ref1 = {
 }
 
 
-# In[18]:
+# In[15]:
 
 
 for nombre in mangueras.keys():
@@ -315,7 +315,7 @@ for nombre in mangueras.keys():
 # 
 # Tal vez quitando la región de la manguera (la de mayor intensidad) sea más fácil segmentar automáticamente la **región referencia**.
 
-# In[19]:
+# In[16]:
 
 
 sin_manguera = {
@@ -327,7 +327,7 @@ plt.imshow(sin_manguera[llaves[0]], cmap='gray')
 
 # Nótese que la imagen muestra en negro la región que antes mostraba la mayor intensidad.
 
-# In[20]:
+# In[17]:
 
 
 sin_manguera = {
@@ -336,7 +336,7 @@ sin_manguera = {
 }
 
 
-# In[21]:
+# In[18]:
 
 
 region_ref2 = {
@@ -344,7 +344,7 @@ region_ref2 = {
 }
 
 
-# In[22]:
+# In[19]:
 
 
 for nombre in sin_manguera.keys():
@@ -371,13 +371,13 @@ for nombre in sin_manguera.keys():
 # }
 # ```
 
-# In[23]:
+# In[20]:
 
 
 sns.distplot(sin_manguera[llaves[2]].flatten())
 
 
-# In[24]:
+# In[21]:
 
 
 region_ref3 = {
@@ -385,7 +385,7 @@ region_ref3 = {
 }
 
 
-# In[25]:
+# In[22]:
 
 
 for nombre in sin_manguera.keys():
@@ -395,14 +395,14 @@ for nombre in sin_manguera.keys():
     )
 
 
-# In[26]:
+# In[23]:
 
 
 edges = canny(mangueras[llaves[0]] /255.)
 fill_coins = ndi.binary_fill_holes(edges)
 
 
-# In[27]:
+# In[24]:
 
 
 verbose = False
@@ -412,7 +412,7 @@ if verbose:
         ref_region(img1, verbose=True)
 
 
-# In[28]:
+# In[25]:
 
 
 region_ref4 = {
@@ -420,7 +420,7 @@ region_ref4 = {
 }
 
 
-# In[29]:
+# In[26]:
 
 
 for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
@@ -429,7 +429,7 @@ for nombre, imagen in zip(region_ref4.keys(), region_ref4.values()):
     plt.title(nombre)
 
 
-# In[30]:
+# In[27]:
 
 
 segmented_ref_reg = {
@@ -437,7 +437,7 @@ segmented_ref_reg = {
 }
 
 
-# In[31]:
+# In[28]:
 
 
 
@@ -449,13 +449,13 @@ plt.figure()
 sns.distplot(_tmp.flatten()[_tmp.flatten().nonzero()])
 
 
-# In[32]:
+# In[29]:
 
 
 plt.imshow(mangueras[llaves[0]])
 
 
-# In[33]:
+# In[30]:
 
 
 #_tmp = mangueras[llaves[0]][90:210, 200:350]
@@ -465,7 +465,7 @@ plt.imshow(mangueras[llaves[0]])
 #sns.distplot(mangueras[llaves[0]][_tmp.nonzero()].flatten())
 
 
-# In[34]:
+# In[31]:
 
 
 _tmp = copy.deepcopy(segmented_ref_reg[llaves[0]][80:220, 210:350])
@@ -474,7 +474,7 @@ plt.figure()
 sns.distplot(_tmp[ _tmp != 0].flatten(), kde=False)
 
 
-# In[35]:
+# In[32]:
 
 
 # Esto servía, pero ya no :
@@ -486,7 +486,7 @@ region_info.describe()
 """
 
 
-# In[36]:
+# In[33]:
 
 
 region_info_list = list(map(
@@ -495,7 +495,7 @@ region_info_list = list(map(
 region_info = pd.concat(region_info_list, axis=1)
 
 
-# In[37]:
+# In[34]:
 
 
 region_info.describe()
@@ -508,19 +508,19 @@ region_info.describe()
 sns.pairplot(region_info.dropna())
 
 
-# In[40]:
+# In[35]:
 
 
 preg4 = skeletonize(mangueras_segmentadas[llaves[0]])
 
 
-# In[41]:
+# In[36]:
 
 
 plt.imshow(preg4, cmap='gray')
 
 
-# In[155]:
+# In[37]:
 
 
 label_image, n_objs = label(preg4, return_num=True) #connectivity=1,
@@ -528,19 +528,19 @@ plt.imshow(label_image)
 print(n_objs)
 
 
-# In[72]:
+# In[38]:
 
 
 #help(label)
 
 
-# In[92]:
+# In[39]:
 
 
 objs = regionprops(label_image)
 
 
-# In[93]:
+# In[40]:
 
 
 objs = regionprops(label_image) 
@@ -548,19 +548,19 @@ for obj in objs:
     print(obj.area)
 
 
-# In[156]:
+# In[41]:
 
 
 _largest = reduce(lambda x, y: x if x.area > y.area else y, objs)
 
 
-# In[157]:
+# In[42]:
 
 
 plt.imshow(_largest.image)
 
 
-# In[140]:
+# In[43]:
 
 
 el_obj = objs[1] 
@@ -568,32 +568,32 @@ plt.imshow(pad_obj(el_obj))
 #plt.imshow( mangueras_adelgazadas[ objs[1].image.nonzero()[0].flatten() ] )
 
 
-# In[141]:
+# In[44]:
 
 
 len(max_tree(pad(el_obj.image))[1])
 
 
-# In[104]:
+# In[45]:
 
 
 mangueras[llaves[0]].shape
 480*640
 
 
-# In[144]:
+# In[46]:
 
 
 el_obj_pad = pad(el_obj.image)
 
 
-# In[145]:
+# In[47]:
 
 
-help(el_obj)
+#help(el_obj)
 
 
-# In[245]:
+# In[48]:
 
 
 _hola = np.zeros_like(preg4)
@@ -606,7 +606,7 @@ for coord in el_obj.coords:
 plt.imshow(_hola)
 
 
-# In[400]:
+# In[49]:
 
 
 #find_branch_points(_hola).sum()
@@ -622,7 +622,7 @@ utils.side_by_side(_tmp, la_buena)
 plt.imshow(canny(_tmp)[100:300, 500:])
 
 
-# In[418]:
+# In[50]:
 
 
 mangueras_segmentadas_amano = {
@@ -630,7 +630,7 @@ mangueras_segmentadas_amano = {
 }
 
 
-# In[576]:
+# In[51]:
 
 
 def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[np.ndarray]:
@@ -671,7 +671,7 @@ def subdivide_hose(img: np.ndarray, n: int = 2, verbose: bool = False) -> List[n
     
 
 
-# In[ ]:
+# In[52]:
 
 
 split_nodes: list = []
@@ -687,19 +687,21 @@ for node in split_nodes:
     _largest_on_image[tuple(node)] = 0
 
 
-# In[578]:
+# In[69]:
 
 
-yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 4)
+yy = subdivide_hose(mangueras_segmentadas_amano[llaves[3]], 2)
 rr, cc = draw.line(*[1, 15], *[22, 32])
 yy[0][rr, cc] = 1
-plt.imshow(yy[0])
+plt.imshow( cv.bitwise_and(np.uint8(mangueras_segmentadas_amano[llaves[3]]), np.uint8(morphology.dilation(yy[0], disk(20)))))
 
 
-# In[396]:
+# In[62]:
 
 
-plt.imshow(skeletonize(mangueras_segmentadas[llaves[0]], method='lee'))
+for llave in llaves:
+    plt.figure()
+    plt.imshow(morphology.dilation(canny(mangueras_segmentadas_amano[llave]), disk(7.5)))
 
 
 # In[267]:
